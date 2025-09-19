@@ -17,6 +17,7 @@ export interface Image {
   comments?: Comment[];
   likes?: number;
   likedBy?: string[];
+  eventId?: string; // Nova propriedade para associar à festa/evento
 }
 
 export interface Comment {
@@ -31,7 +32,10 @@ export interface Comment {
 export interface Party {
   id: string;
   name: string;
+  description?: string;
   qrCode: string;
+  inviteCode: string;
+  createdBy: string;
   createdAt: Date;
   isActive: boolean;
 }

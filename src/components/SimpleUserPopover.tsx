@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Eye, LogOut, Settings, User, Camera, Sun, Moon } from 'lucide-react';
+import { Bell, Eye, LogOut, Settings, User, Camera, Sun, Moon, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useEvent } from '../contexts/EventContext';
 import { notificationService } from '../services/notificationService';
+import EventSelector from './EventSelector';
 
 interface SimpleUserPopoverProps {
   onNotificationClick: (imageId: string) => void;
@@ -17,8 +19,10 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
 }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { currentEvent, loadUserEvents, loadUserParticipations } = useEvent();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showEventSelector, setShowEventSelector] = useState(false);
 
   // Função para gerar avatar baseado nas iniciais
   const generateInitialsAvatar = (name: string, size: number = 40): string => {
@@ -81,7 +85,14 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user.id]);
+
+  // Carregar eventos e participações do usuário (apenas uma vez)
+  useEffect(() => {
+    if (!user) return;
+    loadUserEvents(user.id);
+    loadUserParticipations(user.id);
+  }, [user.id, loadUserEvents, loadUserParticipations]);
 
   if (!user) return null;
 
@@ -92,7 +103,7 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700 transition-colors"
       >
-        <span className="text-sm font-medium text-encibra-gray-700 dark:text-encibra-gray-200">
+        <span className="text-sm font-medium text-encibra-gray-700 dark:text-white">
           {user.name}
         </span>
         <div className="relative">
@@ -148,6 +159,29 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
 
             {/* Opções do menu */}
             <div className="py-2">
+              {/* Gerenciar Eventos */}
+              <button
+                onClick={() => {
+                  setShowEventSelector(true);
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700/50 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-encibra-purple-100 dark:bg-encibra-purple-900 flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-encibra-purple-600 dark:text-white" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-encibra-gray-700 dark:text-white">
+                    Eventos e Festas
+                  </span>
+                  {currentEvent && (
+                    <p className="text-xs text-encibra-gray-500 dark:text-encibra-gray-300">
+                      {currentEvent.name}
+                    </p>
+                  )}
+                </div>
+              </button>
+
               {/* Adicionar Foto */}
               <button
                 onClick={() => {
@@ -157,9 +191,9 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
                 className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700/50 transition-colors"
               >
                 <div className="w-8 h-8 rounded-lg bg-encibra-green-100 dark:bg-encibra-green-900 flex items-center justify-center">
-                  <Camera className="w-4 h-4 text-encibra-green-600 dark:text-encibra-green-400" />
+                  <Camera className="w-4 h-4 text-encibra-green-600 dark:text-white" />
                 </div>
-                <span className="text-encibra-gray-700 dark:text-encibra-gray-200">
+                <span className="text-encibra-gray-700 dark:text-white">
                   Adicionar Foto
                 </span>
               </button>
@@ -172,9 +206,9 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
                 className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700/50 transition-colors"
               >
                 <div className="w-8 h-8 rounded-lg bg-encibra-purple-100 dark:bg-encibra-purple-900 flex items-center justify-center">
-                  <Eye className="w-4 h-4 text-encibra-purple-600 dark:text-encibra-purple-400" />
+                  <Eye className="w-4 h-4 text-encibra-purple-600 dark:text-white" />
                 </div>
-                <span className="text-encibra-gray-700 dark:text-encibra-gray-200">
+                <span className="text-encibra-gray-700 dark:text-white">
                   Ver Tela de Projeção
                 </span>
               </a>
@@ -188,12 +222,12 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
               >
                 <div className="w-8 h-8 rounded-lg bg-encibra-gray-100 dark:bg-encibra-gray-700 flex items-center justify-center">
                   {theme === 'dark' ? (
-                    <Sun className="w-4 h-4 text-encibra-gray-600 dark:text-encibra-gray-400" />
+                    <Sun className="w-4 h-4 text-encibra-gray-600 dark:text-white" />
                   ) : (
-                    <Moon className="w-4 h-4 text-encibra-gray-600 dark:text-encibra-gray-400" />
+                    <Moon className="w-4 h-4 text-encibra-gray-600 dark:text-white" />
                   )}
                 </div>
-                <span className="text-encibra-gray-700 dark:text-encibra-gray-200">
+                <span className="text-encibra-gray-700 dark:text-white">
                   {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
                 </span>
               </button>
@@ -207,9 +241,9 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
                 className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700/50 transition-colors"
               >
                 <div className="w-8 h-8 rounded-lg bg-encibra-gray-100 dark:bg-encibra-gray-700 flex items-center justify-center">
-                  <Settings className="w-4 h-4 text-encibra-gray-600 dark:text-encibra-gray-400" />
+                  <Settings className="w-4 h-4 text-encibra-gray-600 dark:text-white" />
                 </div>
-                <span className="text-encibra-gray-700 dark:text-encibra-gray-200">
+                <span className="text-encibra-gray-700 dark:text-white">
                   Configurações
                 </span>
               </button>
@@ -223,14 +257,20 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
                 className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
               >
                 <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4 text-red-600 dark:text-red-300" />
                 </div>
-                <span>Sair</span>
+                <span className="text-red-600 dark:text-red-400">Sair</span>
               </button>
             </div>
           </div>
         </>
       )}
+
+      {/* Event Selector Modal */}
+      <EventSelector
+        isOpen={showEventSelector}
+        onClose={() => setShowEventSelector(false)}
+      />
     </div>
   );
 };

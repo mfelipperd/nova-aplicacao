@@ -1,0 +1,430 @@
+import React, { useState } from 'react';
+import { Calendar, Plus, Users, Copy, Check } from 'lucide-react';
+import { useEvent } from '../contexts/EventContext';
+import { useAuth } from '../contexts/AuthContext';
+import { eventService } from '../services/eventService';
+
+interface EventSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
+  const { currentEvent, setCurrentEvent, userEvents, userParticipations, loadUserEvents } = useEvent();
+  const { user } = useAuth();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newEventName, setNewEventName] = useState('');
+  const [newEventDescription, setNewEventDescription] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  if (!isOpen || !user) return null;
+
+  // Teste simples do Firebase
+  const testFirebase = async () => {
+    try {
+      console.log('🧪 Testando Firebase...');
+      console.log('👤 User:', user);
+      console.log('🔑 User ID:', user.id);
+      
+      // Teste básico - tentar criar um evento de teste
+      const testEvent = await eventService.createEvent(
+        'Teste Firebase',
+        'Evento de teste',
+        user.id
+      );
+      
+      console.log('✅ Firebase funcionando! Evento criado:', testEvent);
+      alert('Firebase funcionando! Evento de teste criado.');
+      
+      // Deletar o evento de teste
+      await eventService.deactivateEvent(testEvent.id);
+      
+    } catch (error) {
+      console.error('❌ Erro no teste do Firebase:', error);
+      alert('Erro no Firebase: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    }
+  };
+
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEventName.trim()) return;
+
+    try {
+      setCreating(true);
+      const newEvent = await eventService.createEvent(
+        newEventName.trim(),
+        newEventDescription.trim(),
+        user.id
+      );
+      
+      // Atualizar lista de eventos
+      await loadUserEvents(user.id);
+      
+      // Definir como evento atual
+      setCurrentEvent(newEvent);
+      
+      // Limpar formulário
+      setNewEventName('');
+      setNewEventDescription('');
+      setShowCreateForm(false);
+      onClose();
+    } catch (error) {
+      console.error('Erro ao criar evento:', error);
+      alert('Erro ao criar evento. Tente novamente.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleSelectEvent = (event: any) => {
+    setCurrentEvent(event);
+    onClose();
+  };
+
+  const handleCopyInviteCode = async (inviteCode: string) => {
+    try {
+      const inviteUrl = `${window.location.origin}/event/${inviteCode}`;
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopiedCode(inviteCode);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch (error) {
+      console.error('Erro ao copiar código:', error);
+    }
+  };
+
+  const handleLeaveEvent = () => {
+    setCurrentEvent(null);
+    onClose();
+  };
+
+  return (
+    <>
+      {/* Overlay */}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-50" 
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-encibra-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+          {/* Header */}
+          <div className="p-6 border-b border-encibra-gray-200 dark:border-encibra-gray-700">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-encibra-gray-900 dark:text-white">
+                Eventos e Festas
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-encibra-gray-100 dark:hover:bg-encibra-gray-700 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 overflow-y-auto max-h-[60vh]">
+            {/* Evento atual */}
+            {currentEvent && (
+              <div className="mb-6 p-4 bg-encibra-blue-50 dark:bg-encibra-blue-900/20 rounded-lg border border-encibra-blue-200 dark:border-encibra-blue-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-encibra-blue-900 dark:text-encibra-blue-100">
+                      Evento Atual
+                    </h3>
+                    <p className="text-sm text-encibra-blue-700 dark:text-encibra-blue-300">
+                      {currentEvent.name}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCopyInviteCode(currentEvent.inviteCode)}
+                    className="flex items-center space-x-2 px-3 py-1 bg-encibra-blue-100 dark:bg-encibra-blue-800 text-encibra-blue-700 dark:text-encibra-blue-200 rounded-lg text-sm hover:bg-encibra-blue-200 dark:hover:bg-encibra-blue-700 transition-colors"
+                  >
+                    {copiedCode === currentEvent.inviteCode ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <button
+                  onClick={handleLeaveEvent}
+                  className="mt-3 text-sm text-encibra-blue-600 dark:text-encibra-blue-400 hover:text-encibra-blue-800 dark:hover:text-encibra-blue-200 transition-colors"
+                >
+                  Sair do Evento
+                </button>
+              </div>
+            )}
+
+            {/* Botão para criar novo evento */}
+            {!showCreateForm && (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="w-full p-4 border-2 border-dashed border-encibra-gray-300 dark:border-encibra-gray-600 rounded-lg hover:border-encibra-green-500 dark:hover:border-encibra-green-400 hover:bg-encibra-green-50 dark:hover:bg-encibra-green-900/20 transition-colors mb-6"
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <Plus className="w-5 h-5 text-encibra-gray-500 dark:text-encibra-gray-400" />
+                <span className="text-encibra-gray-700 dark:text-white">
+                  Criar Nova Festa/Evento
+                </span>
+                </div>
+              </button>
+            )}
+
+            {/* Formulário de criação */}
+            {showCreateForm && (
+              <form onSubmit={handleCreateEvent} className="mb-6 p-4 bg-encibra-gray-50 dark:bg-encibra-gray-700/50 rounded-lg">
+                <h3 className="font-medium text-encibra-gray-900 dark:text-white mb-4">
+                  Criar Novo Evento
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-encibra-gray-700 dark:text-white mb-2">
+                      Nome do Evento
+                    </label>
+                    <input
+                      type="text"
+                      value={newEventName}
+                      onChange={(e) => setNewEventName(e.target.value)}
+                      placeholder="Ex: Aniversário da Maria, Formatura 2024..."
+                      className="w-full px-3 py-2 border border-encibra-gray-300 dark:border-encibra-gray-600 rounded-lg focus:ring-2 focus:ring-encibra-primary-500 focus:border-transparent dark:bg-encibra-gray-800 dark:text-white"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-encibra-gray-700 dark:text-white mb-2">
+                      Descrição (opcional)
+                    </label>
+                    <textarea
+                      value={newEventDescription}
+                      onChange={(e) => setNewEventDescription(e.target.value)}
+                      placeholder="Descreva o evento..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-encibra-gray-300 dark:border-encibra-gray-600 rounded-lg focus:ring-2 focus:ring-encibra-primary-500 focus:border-transparent dark:bg-encibra-gray-800 dark:text-white resize-none"
+                    />
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex space-x-3">
+                      <button
+                        type="submit"
+                        disabled={creating || !newEventName.trim()}
+                        className="flex-1 px-4 py-2 bg-encibra-primary-600 text-white rounded-lg hover:bg-encibra-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {creating ? 'Criando...' : 'Criar Evento'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateForm(false);
+                          setNewEventName('');
+                          setNewEventDescription('');
+                        }}
+                        className="px-4 py-2 border border-encibra-gray-300 dark:border-encibra-gray-600 text-encibra-gray-700 dark:text-white rounded-lg hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                    
+                    {/* Botão de teste */}
+                    <button
+                      type="button"
+                      onClick={testFirebase}
+                      className="w-full px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm"
+                    >
+                      🧪 Testar Firebase
+                    </button>
+                    
+                    {/* Botão de teste para criar evento */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          console.log('🧪 TESTE: Criando evento de teste...');
+                          const testEvent = await eventService.createEvent(
+                            'Teste Debug',
+                            'Evento criado para debug',
+                            user.id
+                          );
+                          console.log('✅ TESTE: Evento criado:', testEvent);
+                          alert('Evento de teste criado com sucesso!');
+                          
+                          // Recarregar eventos
+                          await loadUserEvents(user.id);
+                        } catch (error) {
+                          console.error('❌ TESTE: Erro ao criar evento:', error);
+                          alert('Erro ao criar evento de teste: ' + error);
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm mt-2"
+                    >
+                      🧪 Criar Evento Teste
+                    </button>
+                    
+                    {/* Botão de teste para buscar eventos sem orderBy */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          console.log('🧪 TESTE: Testando busca sem orderBy...');
+                          
+                          // Importar Firebase diretamente para teste
+                          const { collection, query, where, getDocs } = await import('firebase/firestore');
+                          const { db } = await import('../config/firebase');
+                          
+                          const testQuery = query(
+                            collection(db, 'parties'),
+                            where('createdBy', '==', user.id)
+                          );
+                          
+                          const snapshot = await getDocs(testQuery);
+                          console.log('🧪 TESTE: Resultado sem orderBy:', snapshot.docs.length, 'eventos');
+                          
+                          snapshot.docs.forEach((doc, index) => {
+                            const data = doc.data();
+                            console.log(`  ${index + 1}. ID: ${doc.id}, name: ${data.name}, createdBy: ${data.createdBy}`);
+                          });
+                          
+                          alert(`Encontrados ${snapshot.docs.length} eventos sem orderBy!`);
+                        } catch (error) {
+                          console.error('❌ TESTE: Erro na busca sem orderBy:', error);
+                          alert('Erro na busca sem orderBy: ' + error);
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm mt-2"
+                    >
+                      🧪 Testar Busca sem OrderBy
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Lista de eventos participados */}
+            {userParticipations.length > 0 && (
+              <div>
+                <h3 className="font-medium text-encibra-gray-900 dark:text-white mb-4">
+                  Eventos Participados
+                </h3>
+                <div className="space-y-3">
+                  {userParticipations.map((participation) => (
+                    <div
+                      key={participation.id}
+                      className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                        currentEvent?.id === participation.eventId
+                          ? 'border-encibra-primary-500 bg-encibra-primary-50 dark:bg-encibra-primary-900/20'
+                          : 'border-encibra-gray-200 dark:border-encibra-gray-700 hover:border-encibra-gray-300 dark:hover:border-encibra-gray-600 hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700/50'
+                      }`}
+                      onClick={() => {
+                        // Criar um objeto Party básico para compatibilidade
+                        const event: any = {
+                          id: participation.eventId,
+                          name: participation.eventName,
+                          inviteCode: participation.eventInviteCode,
+                          createdAt: participation.joinedAt
+                        };
+                        handleSelectEvent(event);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-encibra-gray-900 dark:text-white">
+                            {participation.eventName}
+                          </h4>
+                          <p className="text-xs text-encibra-gray-500 dark:text-encibra-gray-500 mt-2">
+                            {participation.role === 'creator' ? 'Criado' : 'Participando'} desde {participation.joinedAt.toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs bg-encibra-gray-100 dark:bg-encibra-gray-700 text-encibra-gray-600 dark:text-encibra-gray-400 px-2 py-1 rounded">
+                            {participation.eventInviteCode}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            participation.role === 'creator'
+                              ? 'bg-encibra-green-100 dark:bg-encibra-green-900 text-encibra-green-600 dark:text-encibra-green-400'
+                              : 'bg-encibra-blue-100 dark:bg-encibra-blue-900 text-encibra-blue-600 dark:text-encibra-blue-400'
+                          }`}>
+                            {participation.role === 'creator' ? 'Criador' : 'Participante'}
+                          </span>
+                          {currentEvent?.id === participation.eventId && (
+                            <span className="text-xs bg-encibra-primary-100 dark:bg-encibra-primary-900 text-encibra-primary-600 dark:text-encibra-primary-400 px-2 py-1 rounded">
+                              Ativo
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lista de eventos criados pelo usuário (mantido para compatibilidade) */}
+            {userEvents.length > 0 && (
+              <div className={userParticipations.length > 0 ? 'mt-6' : ''}>
+                <h3 className="font-medium text-encibra-gray-900 dark:text-white mb-4">
+                  Eventos Criados
+                </h3>
+                <div className="space-y-3">
+                  {userEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                        currentEvent?.id === event.id
+                          ? 'border-encibra-primary-500 bg-encibra-primary-50 dark:bg-encibra-primary-900/20'
+                          : 'border-encibra-gray-200 dark:border-encibra-gray-700 hover:border-encibra-gray-300 dark:hover:border-encibra-gray-600 hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700/50'
+                      }`}
+                      onClick={() => handleSelectEvent(event)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-encibra-gray-900 dark:text-white">
+                            {event.name}
+                          </h4>
+                          {event.description && (
+                            <p className="text-sm text-encibra-gray-600 dark:text-encibra-gray-400 mt-1">
+                              {event.description}
+                            </p>
+                          )}
+                          <p className="text-xs text-encibra-gray-500 dark:text-encibra-gray-500 mt-2">
+                            Criado em {event.createdAt.toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs bg-encibra-gray-100 dark:bg-encibra-gray-700 text-encibra-gray-600 dark:text-encibra-gray-400 px-2 py-1 rounded">
+                            {event.inviteCode}
+                          </span>
+                          <span className="text-xs bg-encibra-green-100 dark:bg-encibra-green-900 text-encibra-green-600 dark:text-encibra-green-400 px-2 py-1 rounded">
+                            Criador
+                          </span>
+                          {currentEvent?.id === event.id && (
+                            <span className="text-xs bg-encibra-primary-100 dark:bg-encibra-primary-900 text-encibra-primary-600 dark:text-encibra-primary-400 px-2 py-1 rounded">
+                              Ativo
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default EventSelector;

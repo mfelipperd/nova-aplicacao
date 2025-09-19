@@ -22,5 +22,60 @@ service cloud.firestore {
       allow read, write: if request.auth != null 
         && request.auth.uid == userId;
     }
+    
+    // Regras para a coleção de eventos/festas
+    match /parties/{partyId} {
+      // Permitir leitura para todos os usuários autenticados
+      allow read: if request.auth != null;
+      
+      // Permitir criação para usuários autenticados
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.createdBy;
+      
+      // Permitir atualização apenas pelo criador do evento
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.createdBy;
+      
+      // Permitir exclusão apenas pelo criador do evento
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.createdBy;
+    }
+    
+    // Regras para notificações
+    match /notifications/{notificationId} {
+      // Permitir leitura apenas pelo usuário destinatário
+      allow read: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Permitir criação para usuários autenticados
+      allow create: if request.auth != null;
+      
+      // Permitir atualização apenas pelo usuário destinatário
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Permitir exclusão apenas pelo usuário destinatário
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+    }
+    
+    // Regras para participações em eventos
+    match /eventParticipations/{participationId} {
+      // Permitir leitura apenas pelo usuário participante
+      allow read: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Permitir criação de participações para usuários autenticados
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId;
+      
+      // Permitir atualização apenas pelo próprio usuário
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Permitir exclusão apenas pelo próprio usuário
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+    }
   }
 }

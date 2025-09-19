@@ -8,6 +8,7 @@ interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (image: Image) => void;
+  eventId?: string;
 }
 
 interface FileWithPreview {
@@ -18,7 +19,7 @@ interface FileWithPreview {
   uploadedImage?: Image;
 }
 
-const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpload }) => {
+const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpload, eventId }) => {
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([]);
   const [uploadingCount, setUploadingCount] = useState(0);
   const { user } = useAuth();
@@ -98,7 +99,8 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpload }) 
           fileWithPreview.file,
           user.id,
           user.name,
-          user.avatar
+          user.avatar,
+          eventId
         );
 
         setSelectedFiles(prev => prev.map(file =>

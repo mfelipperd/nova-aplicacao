@@ -35,7 +35,8 @@ export const imageService = {
     file: File,
     userId: string,
     userName: string,
-    userAvatar?: string
+    userAvatar?: string,
+    eventId?: string
   ): Promise<Image> {
     try {
       // Criar referência no storage
@@ -57,7 +58,8 @@ export const imageService = {
         userName,
         userAvatar: userAvatar || null,
         comments: [],
-        likes: 0
+        likes: 0,
+        eventId: eventId || null
       };
       
       const docRef = await addDoc(collection(db, 'images'), imageData);
@@ -70,7 +72,8 @@ export const imageService = {
         userId,
         userName,
         userAvatar,
-        comments: []
+        comments: [],
+        eventId
       };
     } catch (error) {
       console.error('❌ Erro ao fazer upload da imagem:', error);
@@ -96,10 +99,19 @@ export const imageService = {
     }
   },
 
-  // Buscar todas as imagens
-  async getAllImages(): Promise<Image[]> {
+  // Buscar todas as imagens (opcionalmente filtradas por evento)
+  async getAllImages(eventId?: string): Promise<Image[]> {
     try {
-      const q = query(collection(db, 'images'), orderBy('uploadedAt', 'desc'));
+      let q;
+      if (eventId) {
+        q = query(
+          collection(db, 'images'), 
+          where('eventId', '==', eventId),
+          orderBy('uploadedAt', 'desc')
+        );
+      } else {
+        q = query(collection(db, 'images'), orderBy('uploadedAt', 'desc'));
+      }
       const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q);
       
       return querySnapshot.docs.map(doc => {
@@ -121,7 +133,8 @@ export const imageService = {
             userAvatar: comment.userAvatar
           })) || [],
           likes: data.likedBy?.length || 0,
-          likedBy: data.likedBy || []
+          likedBy: data.likedBy || [],
+          eventId: data.eventId
         };
         
         

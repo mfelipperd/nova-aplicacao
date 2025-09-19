@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useEvent } from '../contexts/EventContext';
 import Feed from '../components/Feed';
 import LikedImages from '../components/LikedImages';
 import NavigationFloatingButtons from '../components/NavigationFloatingButtons';
 import SimpleUserPopover from '../components/SimpleUserPopover';
 import UploadModal from '../components/UploadModal';
+import EventSelectorDropdown from '../components/EventSelectorDropdown';
+import EventSelector from '../components/EventSelector';
 import { imageService } from '../services/imageService';
 import type { Image } from '../types';
 
 const HomePage: React.FC = () => {
   const { user, logout } = useAuth();
+  const { currentEvent } = useEvent();
   const [images, setImages] = useState<Image[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isEventSelectorOpen, setIsEventSelectorOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'feed' | 'liked'>('feed');
 
   // Carregar imagens do Firebase
   useEffect(() => {
     const loadImages = async () => {
       try {
-        const firebaseImages = await imageService.getAllImages();
+        const firebaseImages = await imageService.getAllImages(currentEvent?.id);
         setImages(firebaseImages);
       } catch (error) {
         console.error('Erro ao carregar imagens:', error);
@@ -49,7 +54,7 @@ const HomePage: React.FC = () => {
     };
 
     loadImages();
-  }, []);
+  }, [currentEvent]);
 
   const handleImageUpload = async (image: Image) => {
     setImages(prev => [image, ...prev]);
@@ -110,7 +115,7 @@ const HomePage: React.FC = () => {
     // Recarregar imagens após deletar
     const reloadImages = async () => {
       try {
-        const firebaseImages = await imageService.getAllImages();
+        const firebaseImages = await imageService.getAllImages(currentEvent?.id);
         setImages(firebaseImages);
       } catch (error) {
         console.error('Erro ao recarregar imagens:', error);
@@ -141,13 +146,17 @@ const HomePage: React.FC = () => {
                   <span className="text-white font-bold text-lg">E</span>
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold text-encibra-gray-900 dark:text-white">Encibra Events</h1>
-                  <p className="text-sm text-encibra-gray-600 dark:text-encibra-gray-300">Galeria de fotos</p>
+                  <h1 className="text-xl font-bold text-encibra-gray-900 dark:text-white">
+                    Encibra Events
+                  </h1>
+                  {/* Seletor de eventos no lugar do subtítulo */}
+                  <EventSelectorDropdown onOpenEventSelector={() => setIsEventSelectorOpen(true)} />
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              
               {/* Popover do usuário */}
               <SimpleUserPopover
                 onNotificationClick={(imageId) => {
@@ -194,6 +203,13 @@ const HomePage: React.FC = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleImageUpload}
+        eventId={currentEvent?.id}
+      />
+
+      {/* Event Selector Modal */}
+      <EventSelector
+        isOpen={isEventSelectorOpen}
+        onClose={() => setIsEventSelectorOpen(false)}
       />
 
       {/* Footer */}
@@ -217,3 +233,4 @@ const HomePage: React.FC = () => {
 };
 
 export default HomePage;
+
