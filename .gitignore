@@ -45,3 +45,4 @@ firebase-debug.log
 # Test files
 test-*.js
 debug-*.js
+.vercel
