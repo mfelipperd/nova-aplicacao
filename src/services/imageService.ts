@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
+  deleteDoc,
   arrayUnion,
   arrayRemove
 } from 'firebase/firestore';
@@ -18,7 +19,8 @@ import type {
 import {
   ref,
   uploadBytes,
-  getDownloadURL
+  getDownloadURL,
+  deleteObject
 } from 'firebase/storage';
 import type {
   UploadResult
@@ -276,6 +278,45 @@ export const imageService = {
     } catch (error) {
       console.error('Erro ao remover like:', error);
       throw new Error('Erro ao remover like. Tente novamente.');
+    }
+  },
+
+  async deleteImage(imageId: string, userId: string): Promise<void> {
+    try {
+      // Primeiro, verificar se o usuário é o dono da imagem
+      const imageRef = doc(db, 'images', imageId);
+      const imageDoc = await getDoc(imageRef);
+      
+      if (!imageDoc.exists()) {
+        throw new Error('Imagem não encontrada');
+      }
+      
+      const imageData = imageDoc.data();
+      
+      if (imageData.userId !== userId) {
+        throw new Error('Você não tem permissão para deletar esta imagem');
+      }
+      
+      // Deletar o documento do Firestore
+      await deleteDoc(imageRef);
+      
+      // Deletar o arquivo do Storage se existir
+      if (imageData.url) {
+        try {
+          const imageStorageRef = ref(storage, imageData.url);
+          await deleteObject(imageStorageRef);
+        } catch (storageError) {
+          console.warn('Aviso: Não foi possível deletar o arquivo do Storage:', storageError);
+          // Não falha a operação se o arquivo do Storage não existir
+        }
+      }
+      
+    } catch (error) {
+      console.error('Erro ao deletar imagem:', error);
+      if (error instanceof Error) {
+        throw error; // Re-throw erros de permissão
+      }
+      throw new Error('Erro ao deletar imagem. Tente novamente.');
     }
   }
 };

@@ -91,54 +91,68 @@ const HomePage: React.FC = () => {
     reloadImages();
   };
 
+  const handleDeleteImage = (_imageId: string) => {
+    // Recarregar imagens após deletar
+    const reloadImages = async () => {
+      try {
+        const firebaseImages = await imageService.getAllImages();
+        setImages(firebaseImages);
+      } catch (error) {
+        console.error('Erro ao recarregar imagens:', error);
+      }
+    };
+    
+    reloadImages();
+  };
+
   const handleLogout = async () => {
     await logout();
   };
 
   return (
-    <div className="min-h-screen bg-encibra-50 dark:bg-encibra-900 transition-colors duration-200">
+    <div className="min-h-screen bg-encibra-light dark:bg-encibra-gray-900 transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white dark:bg-encibra-800 shadow-sm border-b border-encibra-200 dark:border-encibra-700 transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <header className="bg-white dark:bg-encibra-gray-800 shadow-sm border-b border-encibra-gray-200 dark:border-encibra-gray-700 transition-colors duration-200 pt-safe">
+        <div className="container-mobile">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-encibra rounded-lg flex items-center justify-center shadow-lg">
                   <span className="text-white font-bold text-lg">E</span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-encibra-900 dark:text-white">Encibra Events</h1>
-                  <p className="text-sm text-encibra-600 dark:text-encibra-300">Galeria de fotos</p>
+                <div className="hidden sm:block">
+                  <h1 className="text-xl font-bold text-encibra-gray-900 dark:text-white">Encibra Events</h1>
+                  <p className="text-sm text-encibra-gray-600 dark:text-encibra-gray-300">Galeria de fotos</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className="hidden sm:flex items-center space-x-2">
                 <img
                   src={user?.avatar || 'https://via.placeholder.com/32'}
                   alt={user?.name}
-                  className="w-8 h-8 rounded-full border-2 border-encibra-200 dark:border-encibra-600"
+                  className="w-8 h-8 rounded-full border-2 border-encibra-gray-200 dark:border-encibra-gray-600"
                 />
-                <span className="text-sm font-medium text-encibra-700 dark:text-encibra-200">
+                <span className="text-sm font-medium text-encibra-gray-700 dark:text-encibra-gray-200">
                   {user?.name}
                 </span>
               </div>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-1 sm:space-x-3">
                 <ThemeToggle />
                 <a
                   href="/display"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 text-encibra-500 dark:text-encibra-400 hover:text-encibra-700 dark:hover:text-encibra-200 transition-colors"
+                  className="p-2 text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-primary-600 dark:hover:text-encibra-gray-200 transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
                   title="Ver tela de projeção"
                 >
                   <Eye className="w-5 h-5" />
                 </a>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-encibra-500 dark:text-encibra-400 hover:text-encibra-700 dark:hover:text-encibra-200 transition-colors"
+                  className="p-2 text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-orange-600 dark:hover:text-encibra-gray-200 transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
                   title="Sair"
                 >
                   <LogOut className="w-5 h-5" />
@@ -150,12 +164,13 @@ const HomePage: React.FC = () => {
       </header>
 
       {/* Main Content - Feed */}
-      <main className="py-6">
+      <main className="py-4 sm:py-6 pb-safe">
         <Feed
           images={images}
           onDownload={handleDownload}
           onLike={handleLike}
           onAddComment={handleAddComment}
+          onDeleteImage={handleDeleteImage}
         />
       </main>
 

@@ -1,19 +1,32 @@
 import React, { useState } from 'react';
-import { Download, MessageCircle, Heart, MoreVertical } from 'lucide-react';
+import { Download, MessageCircle, Heart, MoreVertical, Trash2 } from 'lucide-react';
 import type { Image as ImageType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { imageService } from '../services/imageService';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface FeedProps {
   images: ImageType[];
   onDownload: (image: ImageType) => void;
   onLike: (imageId: string) => void;
   onAddComment: (imageId: string, content: string) => void;
+  onDeleteImage: (imageId: string) => void;
 }
 
-const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment }) => {
+const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, onDeleteImage }) => {
   const { user } = useAuth();
   const [newCommentContent, setNewCommentContent] = useState<{ [key: string]: string }>({});
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    imageId: string | null;
+    imageOwner: string;
+    isDeleting: boolean;
+  }>({
+    isOpen: false,
+    imageId: null,
+    imageOwner: '',
+    isDeleting: false
+  });
 
   // Função para processar URLs de avatar do Google
   const processAvatarUrl = (avatarUrl: string | undefined, size: number = 40): string => {
@@ -57,6 +70,45 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
     }
   };
 
+  const handleDeleteClick = (imageId: string, imageOwner: string) => {
+    setDeleteModal({
+      isOpen: true,
+      imageId,
+      imageOwner,
+      isDeleting: false
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.imageId || !user) return;
+
+    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+
+    try {
+      await imageService.deleteImage(deleteModal.imageId, user.id);
+      onDeleteImage(deleteModal.imageId); // Notify parent to reload images
+      setDeleteModal({
+        isOpen: false,
+        imageId: null,
+        imageOwner: '',
+        isDeleting: false
+      });
+    } catch (error) {
+      console.error('Erro ao deletar imagem:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao deletar imagem. Tente novamente.');
+      setDeleteModal(prev => ({ ...prev, isDeleting: false }));
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({
+      isOpen: false,
+      imageId: null,
+      imageOwner: '',
+      isDeleting: false
+    });
+  };
+
   if (images.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -74,16 +126,16 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full space-y-4 px-2 sm:max-w-2xl sm:mx-auto sm:space-y-6 sm:px-0">
       {images.map((image) => (
-        <div key={image.id} className="bg-white dark:bg-encibra-800 rounded-xl shadow-lg border border-encibra-200 dark:border-encibra-700 overflow-hidden">
+        <div key={image.id} className="card-mobile overflow-hidden">
           {/* Header do post */}
-          <div className="flex items-center justify-between p-4 border-b border-encibra-100 dark:border-encibra-700">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-encibra-gray-100 dark:border-encibra-gray-700">
             <div className="flex items-center space-x-3">
                   <img
                     src={processAvatarUrl(image.userAvatar, 40)}
                     alt={image.userName}
-                    className="w-10 h-10 rounded-full border-2 border-encibra-200 dark:border-encibra-600"
+                    className="w-10 h-10 rounded-full border-2 border-encibra-gray-200 dark:border-encibra-gray-600"
                     onError={(e) => {
                       console.log('❌ Avatar failed to load:', {
                         url: image.userAvatar,
@@ -99,19 +151,30 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
                       });
                     }}
                   />
-              <div>
-                <p className="font-semibold text-encibra-900 dark:text-white">
-                  {image.userName}
-                </p>
-                <p className="text-sm text-encibra-500 dark:text-encibra-400">
-                  {getTimeAgo(image.uploadedAt)}
-                </p>
-              </div>
+                  <div>
+                    <p className="font-semibold text-encibra-gray-900 dark:text-white">
+                      {image.userName}
+                    </p>
+                    <p className="text-sm text-encibra-gray-500 dark:text-encibra-gray-400">
+                      {getTimeAgo(image.uploadedAt)}
+                    </p>
+                  </div>
             </div>
             
-            <button className="p-2 text-encibra-400 hover:text-encibra-600 dark:hover:text-encibra-300 transition-colors">
-              <MoreVertical className="w-5 h-5" />
-            </button>
+            <div className="relative">
+              {user && user.id === image.userId && (
+                <button 
+                  onClick={() => handleDeleteClick(image.id, image.userName)}
+                  className="p-2 text-encibra-gray-400 hover:text-encibra-orange-600 dark:hover:text-encibra-orange-400 transition-colors touch-manipulation min-h-[44px] min-w-[44px]"
+                  title="Deletar foto"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
+              <button className="p-2 text-encibra-gray-400 hover:text-encibra-gray-600 dark:hover:text-encibra-gray-300 transition-colors touch-manipulation min-h-[44px] min-w-[44px]">
+                <MoreVertical className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Imagem */}
@@ -124,16 +187,16 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
             />
           </div>
 
-          {/* Ações */}
-          <div className="p-4">
+              {/* Ações */}
+              <div className="p-3 sm:p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-4">
                 <button 
                   onClick={() => onLike(image.id)}
-                  className={`flex items-center space-x-1 transition-colors ${
+                  className={`flex items-center space-x-1 transition-colors touch-manipulation min-h-[44px] min-w-[44px] ${
                     user && image.likedBy?.includes(user.id) 
-                      ? 'text-red-500' 
-                      : 'text-encibra-500 dark:text-encibra-400 hover:text-red-500'
+                      ? 'text-encibra-orange-500' 
+                      : 'text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-orange-500'
                   }`}
                 >
                   <Heart 
@@ -141,21 +204,21 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
                       user && image.likedBy?.includes(user.id) ? 'fill-current' : ''
                     }`} 
                   />
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium text-encibra-gray-700 dark:text-encibra-gray-200">
                     {image.likes || 0}
                   </span>
                 </button>
                 
-                <button className="flex items-center space-x-1 text-encibra-500 dark:text-encibra-400 hover:text-encibra-600 dark:hover:text-encibra-300 transition-colors">
+                <button className="flex items-center space-x-1 text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-primary-600 dark:hover:text-encibra-gray-300 transition-colors">
                   <MessageCircle className="w-6 h-6" />
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium text-encibra-gray-700 dark:text-encibra-gray-200">
                     {image.comments?.length || 0}
                   </span>
                 </button>
                 
                 <button 
                   onClick={() => onDownload(image)}
-                  className="text-encibra-500 dark:text-encibra-400 hover:text-encibra-600 dark:hover:text-encibra-300 transition-colors"
+                  className="text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-green-600 dark:hover:text-encibra-gray-300 transition-colors touch-manipulation min-h-[44px] min-w-[44px] p-2"
                 >
                   <Download className="w-6 h-6" />
                 </button>
@@ -177,10 +240,10 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
                           />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">
-                        <span className="font-semibold text-encibra-900 dark:text-white">
+                        <span className="font-semibold text-encibra-gray-900 dark:text-white">
                           {comment.userName}
                         </span>
-                        <span className="text-encibra-900 dark:text-white ml-2">
+                        <span className="text-encibra-gray-900 dark:text-white ml-2">
                           {comment.content}
                         </span>
                       </p>
@@ -188,7 +251,7 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
                   </div>
                 ))}
                 {image.comments.length > 3 && (
-                  <button className="text-sm text-encibra-500 dark:text-encibra-400 hover:text-encibra-600 dark:hover:text-encibra-300">
+                  <button className="text-sm text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-primary-600 dark:hover:text-encibra-gray-300">
                     Ver todos os {image.comments.length} comentários
                   </button>
                 )}
@@ -196,7 +259,7 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
             )}
 
             {/* Campo de comentário */}
-            <div className="flex items-center space-x-2 pt-2 border-t border-encibra-100 dark:border-encibra-700">
+            <div className="flex items-center space-x-2 pt-3 border-t border-encibra-gray-100 dark:border-encibra-gray-700">
                     <img
                       src={user?.avatar || 'https://via.placeholder.com/24'}
                       alt={user?.name}
@@ -213,7 +276,7 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
                   onChange={(e) => {
                     setNewCommentContent(prev => ({ ...prev, [image.id]: e.target.value }));
                   }}
-                  className="flex-1 bg-transparent text-sm text-encibra-900 dark:text-white placeholder-encibra-400 dark:placeholder-encibra-500 focus:outline-none"
+                  className="input-mobile flex-1 text-sm"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && newCommentContent[image.id]?.trim()) {
                       handleAddComment(image.id);
@@ -225,7 +288,7 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
                     handleAddComment(image.id);
                   }}
                   disabled={!newCommentContent[image.id]?.trim()}
-                  className="text-sm font-semibold text-encibra-purple-500 hover:text-encibra-purple-600 dark:text-encibra-purple-400 dark:hover:text-encibra-purple-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn-mobile text-sm font-semibold text-encibra-primary-500 hover:text-encibra-primary-600 dark:text-encibra-primary-400 dark:hover:text-encibra-primary-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Publicar
                 </button>
@@ -234,6 +297,15 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment })
           </div>
         </div>
       ))}
+
+      {/* Modal de Confirmação de Delete */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        imageOwner={deleteModal.imageOwner}
+        isDeleting={deleteModal.isDeleting}
+      />
     </div>
   );
 };
