@@ -6,9 +6,8 @@ service cloud.firestore {
       // Permitir leitura para todos os usuários autenticados
       allow read: if request.auth != null;
       
-      // Permitir criação apenas para usuários autenticados (upload de imagens)
-      allow create: if request.auth != null 
-        && request.auth.uid == resource.data.userId;
+      // Permitir criação para usuários autenticados (upload de imagens)
+      allow create: if request.auth != null;
       
       // Permitir atualização para qualquer usuário autenticado (temporário para debug)
       allow update: if request.auth != null;
