@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { eventService } from '../services/eventService';
 import { eventParticipationService, type EventParticipation } from '../services/eventParticipationService';
 import { useAuth } from './AuthContext';
+import { CookieService, COOKIE_NAMES } from '../utils/cookieService';
 import type { Party } from '../types';
 
 interface EventContextType {
@@ -16,6 +17,8 @@ interface EventContextType {
   loadEventByInviteCode: (inviteCode: string) => Promise<void>;
   addEventParticipation: (event: Party, role: 'creator' | 'participant') => Promise<void>;
   reloadUserEvents: (userId: string) => Promise<void>;
+  saveLastEventToCookie: (event: Party) => void;
+  loadLastEventFromCookie: () => Party | null;
   loading: boolean;
 }
 
@@ -91,6 +94,59 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
     }
   }, [loadUserEvents, loadUserParticipations]);
 
+  // Salvar último evento nos cookies
+  const saveLastEventToCookie = useCallback((event: Party) => {
+    try {
+      // Salvar por 30 dias
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      
+      CookieService.setCookie(COOKIE_NAMES.LAST_EVENT_ID, event.id, {
+        expires: expirationDate,
+        path: '/'
+      });
+      
+      CookieService.setCookie(COOKIE_NAMES.LAST_EVENT_NAME, event.name, {
+        expires: expirationDate,
+        path: '/'
+      });
+      
+      CookieService.setCookie(COOKIE_NAMES.LAST_EVENT_INVITE_CODE, event.inviteCode, {
+        expires: expirationDate,
+        path: '/'
+      });
+    } catch (error) {
+      console.error('Erro ao salvar evento nos cookies:', error);
+    }
+  }, []);
+
+  // Carregar último evento dos cookies
+  const loadLastEventFromCookie = useCallback((): Party | null => {
+    try {
+      const eventId = CookieService.getCookie(COOKIE_NAMES.LAST_EVENT_ID);
+      const eventName = CookieService.getCookie(COOKIE_NAMES.LAST_EVENT_NAME);
+      const inviteCode = CookieService.getCookie(COOKIE_NAMES.LAST_EVENT_INVITE_CODE);
+      
+      if (eventId && eventName && inviteCode) {
+        return {
+          id: eventId,
+          name: eventName,
+          inviteCode: inviteCode,
+          description: '',
+          qrCode: '', // QR Code será gerado quando necessário
+          createdAt: new Date(),
+          createdBy: '',
+          isActive: true
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Erro ao carregar evento dos cookies:', error);
+      return null;
+    }
+  }, []);
+
   // Carregar evento por código de convite
   const loadEventByInviteCode = useCallback(async (inviteCode: string, userId?: string) => {
     try {
@@ -126,17 +182,44 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
   useEffect(() => {
     if (initialized || !user) return;
     
-    const path = window.location.pathname;
-    const eventMatch = path.match(/\/event\/([A-Z0-9]+)/);
+    const initializeEvent = async () => {
+      const path = window.location.pathname;
+      const eventMatch = path.match(/\/event\/([A-Z0-9]+)/);
+      
+      // Prioridade 1: Evento via URL (link direto)
+      if (eventMatch) {
+        const inviteCode = eventMatch[1];
+        await loadEventByInviteCode(inviteCode, user.id);
+        return; // Se carregou via URL, não carrega do cookie
+      }
+      
+      // Prioridade 2: Evento salvo nos cookies
+      const lastEventFromCookie = loadLastEventFromCookie();
+      if (lastEventFromCookie) {
+        // Verificar se o evento ainda existe e se o usuário tem acesso
+        try {
+          const fullEvent = await eventService.getEventByInviteCode(lastEventFromCookie.inviteCode);
+          if (fullEvent) {
+            setCurrentEvent(fullEvent);
+            // Recarregar eventos do usuário para garantir que temos a lista atualizada
+            await reloadUserEvents(user.id);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar evento dos cookies:', error);
+          // Se o evento não existe mais, limpar os cookies
+          CookieService.removeCookie(COOKIE_NAMES.LAST_EVENT_ID);
+          CookieService.removeCookie(COOKIE_NAMES.LAST_EVENT_NAME);
+          CookieService.removeCookie(COOKIE_NAMES.LAST_EVENT_INVITE_CODE);
+        }
+      } else {
+        // Se não há evento nos cookies, carregar eventos do usuário
+        await reloadUserEvents(user.id);
+      }
+    };
     
-    if (eventMatch && !currentEvent) {
-      const inviteCode = eventMatch[1];
-      // Agora temos acesso ao userId através do contexto de autenticação
-      loadEventByInviteCode(inviteCode, user.id);
-    }
-    
+    initializeEvent();
     setInitialized(true);
-  }, [initialized, currentEvent, loadEventByInviteCode, user]);
+  }, [initialized, user, loadEventByInviteCode, loadLastEventFromCookie, reloadUserEvents]);
 
   const value: EventContextType = useMemo(() => ({
     currentEvent,
@@ -150,8 +233,10 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
     loadEventByInviteCode,
     addEventParticipation,
     reloadUserEvents,
+    saveLastEventToCookie,
+    loadLastEventFromCookie,
     loading
-  }), [currentEvent, userEvents, userParticipations, loadUserEvents, loadUserParticipations, loadEventByInviteCode, addEventParticipation, reloadUserEvents, loading]);
+  }), [currentEvent, userEvents, userParticipations, loadUserEvents, loadUserParticipations, loadEventByInviteCode, addEventParticipation, reloadUserEvents, saveLastEventToCookie, loadLastEventFromCookie, loading]);
 
   return (
     <EventContext.Provider value={value}>

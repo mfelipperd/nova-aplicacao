@@ -10,7 +10,7 @@ interface EventSelectorProps {
 }
 
 const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
-  const { currentEvent, setCurrentEvent, userEvents, userParticipations, loadUserEvents } = useEvent();
+  const { currentEvent, setCurrentEvent, userEvents, userParticipations, loadUserEvents, saveLastEventToCookie } = useEvent();
   const { user } = useAuth();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEventName, setNewEventName] = useState('');
@@ -37,8 +37,9 @@ const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
       // Atualizar lista de eventos
       await loadUserEvents(user.id);
       
-      // Definir como evento atual
+      // Definir como evento atual e salvar nos cookies
       setCurrentEvent(newEvent);
+      saveLastEventToCookie(newEvent);
       
       // Limpar formulário
       setNewEventName('');
@@ -55,6 +56,7 @@ const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
 
   const handleSelectEvent = (event: any) => {
     setCurrentEvent(event);
+    saveLastEventToCookie(event); // Salvar o evento selecionado nos cookies
     onClose();
   };
 

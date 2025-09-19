@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import type { Image } from '../types';
 import { imageService } from '../services/imageService';
+import { useEvent } from '../contexts/EventContext';
 
 const RealtimeDisplay: React.FC = () => {
+  const { currentEvent } = useEvent();
   const [images, setImages] = useState<Image[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
 
-  // Carregar imagens do Firebase
+  // Carregar imagens do Firebase filtradas pelo evento atual
   useEffect(() => {
     const loadImages = async () => {
       try {
-        const firebaseImages = await imageService.getAllImages();
+        // Se não há evento ativo, não carregar imagens
+        if (!currentEvent) {
+          setImages([]);
+          return;
+        }
+
+        const firebaseImages = await imageService.getAllImages(currentEvent.id);
         setImages(firebaseImages);
       } catch (error) {
         console.error('Erro ao carregar imagens para exibição:', error);
@@ -23,7 +31,7 @@ const RealtimeDisplay: React.FC = () => {
     // Recarregar imagens a cada 30 segundos para atualizações em tempo real
     const interval = setInterval(loadImages, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentEvent]); // Dependência no currentEvent
 
   // Auto-play das imagens
   useEffect(() => {
@@ -57,8 +65,20 @@ const RealtimeDisplay: React.FC = () => {
               <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold mb-4">Galeria da Festa</h1>
-          <p className="text-xl opacity-75">Aguardando fotos serem compartilhadas...</p>
+          <h1 className="text-4xl font-bold mb-4">
+            {currentEvent ? `Galeria do ${currentEvent.name}` : 'Galeria da Festa'}
+          </h1>
+          <p className="text-xl opacity-75">
+            {currentEvent 
+              ? `Aguardando fotos serem compartilhadas no evento "${currentEvent.name}"...`
+              : 'Nenhum evento ativo. Selecione um evento para visualizar as fotos.'
+            }
+          </p>
+          {currentEvent && (
+            <div className="mt-6 text-lg opacity-60">
+              <p>Código do evento: <span className="font-mono bg-white bg-opacity-20 px-2 py-1 rounded">{currentEvent.inviteCode}</span></p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -95,9 +115,16 @@ const RealtimeDisplay: React.FC = () => {
       {/* Informações da festa */}
       <div className="absolute top-4 left-4 z-10">
         <div className="bg-black bg-opacity-50 rounded-lg p-4 text-white">
-          <h1 className="text-2xl font-bold mb-1">Galeria da Festa</h1>
+          <h1 className="text-2xl font-bold mb-1">
+            {currentEvent ? `Galeria do ${currentEvent.name}` : 'Galeria da Festa'}
+          </h1>
           <p className="text-sm opacity-75">
             {images.length} foto{images.length !== 1 ? 's' : ''} compartilhada{images.length !== 1 ? 's' : ''}
+            {currentEvent && (
+              <span className="block mt-1">
+                Código: <span className="font-mono bg-white bg-opacity-20 px-2 py-1 rounded text-xs">{currentEvent.inviteCode}</span>
+              </span>
+            )}
           </p>
         </div>
       </div>

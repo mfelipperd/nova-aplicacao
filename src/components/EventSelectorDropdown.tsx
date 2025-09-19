@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Calendar, Copy, Check, RefreshCw } from 'lucide-react';
 import { useEvent } from '../contexts/EventContext';
 import { useAuth } from '../contexts/AuthContext';
+import { CookieService, COOKIE_NAMES } from '../utils/cookieService';
 
 interface EventSelectorDropdownProps {
   onOpenEventSelector?: () => void;
 }
 
 const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEventSelector }) => {
-  const { currentEvent, setCurrentEvent, userParticipations, userEvents, reloadUserEvents } = useEvent();
+  const { currentEvent, setCurrentEvent, userParticipations, userEvents, reloadUserEvents, saveLastEventToCookie } = useEvent();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -35,6 +36,7 @@ const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEve
 
   const handleEventSelect = (event: any) => {
     setCurrentEvent(event);
+    saveLastEventToCookie(event); // Salvar o evento selecionado nos cookies
     setIsOpen(false);
   };
 
@@ -52,6 +54,11 @@ const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEve
   const handleLeaveEvent = () => {
     setCurrentEvent(null);
     setIsOpen(false);
+    
+    // Limpar cookies quando sair do evento
+    CookieService.removeCookie(COOKIE_NAMES.LAST_EVENT_ID);
+    CookieService.removeCookie(COOKIE_NAMES.LAST_EVENT_NAME);
+    CookieService.removeCookie(COOKIE_NAMES.LAST_EVENT_INVITE_CODE);
     
     // Recarregar eventos após sair para garantir que a lista esteja atualizada
     if (user) {
