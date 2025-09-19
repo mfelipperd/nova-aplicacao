@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, Heart, DownloadCloud, ArrowLeft } from 'lucide-react';
 import type { Image as ImageType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import ImageCardSkeleton from './ImageCardSkeleton';
+// import ImageCardSkeleton from './ImageCardSkeleton';
 
 interface LikedImagesProps {
   images: ImageType[];

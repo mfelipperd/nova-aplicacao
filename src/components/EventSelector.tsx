@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Plus, Users, Copy, Check } from 'lucide-react';
+import { Plus, Copy, Check } from 'lucide-react';
 import { useEvent } from '../contexts/EventContext';
 import { useAuth } from '../contexts/AuthContext';
 import { eventService } from '../services/eventService';

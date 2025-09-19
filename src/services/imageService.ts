@@ -10,7 +10,8 @@ import {
   updateDoc,
   deleteDoc,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  where
 } from 'firebase/firestore';
 import type {
   DocumentData,

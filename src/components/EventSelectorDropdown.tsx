@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Calendar, Users, Copy, Check, RefreshCw } from 'lucide-react';
+import { ChevronDown, Calendar, Copy, Check, RefreshCw } from 'lucide-react';
 import { useEvent } from '../contexts/EventContext';
 import { useAuth } from '../contexts/AuthContext';
 

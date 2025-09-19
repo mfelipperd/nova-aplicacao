@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { eventService } from '../services/eventService';
 import { eventParticipationService, type EventParticipation } from '../services/eventParticipationService';
 import type { Party } from '../types';

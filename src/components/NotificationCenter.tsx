@@ -97,7 +97,9 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNotificationC
 
   const markAllAsRead = async () => {
     try {
-      await notificationService.markAllNotificationsAsRead(user.id);
+      if (user) {
+        await notificationService.markAllNotificationsAsRead(user.id);
+      }
       setNotifications(prev => 
         prev.map(notif => ({ ...notif, read: true }))
       );
@@ -108,7 +110,9 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNotificationC
 
   const clearAll = async () => {
     try {
-      await notificationService.clearAllNotifications(user.id);
+      if (user) {
+        await notificationService.clearAllNotifications(user.id);
+      }
       setNotifications([]);
       setIsOpen(false);
     } catch (error) {

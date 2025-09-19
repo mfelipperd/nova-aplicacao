@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Eye, LogOut, Settings, User, Camera, Sun, Moon, Calendar } from 'lucide-react';
+import { Eye, LogOut, Settings, Camera, Sun, Moon, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useEvent } from '../contexts/EventContext';
@@ -13,7 +13,6 @@ interface SimpleUserPopoverProps {
 }
 
 const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
-  onNotificationClick,
   onLogout,
   onUploadClick
 }) => {
@@ -85,14 +84,14 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
     );
 
     return () => unsubscribe();
-  }, [user.id]);
+  }, [user?.id]);
 
   // Carregar eventos e participações do usuário (apenas uma vez)
   useEffect(() => {
     if (!user) return;
     loadUserEvents(user.id);
     loadUserParticipations(user.id);
-  }, [user.id, loadUserEvents, loadUserParticipations]);
+  }, [user?.id, loadUserEvents, loadUserParticipations]);
 
   if (!user) return null;
 

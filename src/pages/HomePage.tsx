@@ -159,7 +159,7 @@ const HomePage: React.FC = () => {
               
               {/* Popover do usuário */}
               <SimpleUserPopover
-                onNotificationClick={(imageId) => {
+                onNotificationClick={(_imageId) => {
                   setCurrentView('feed');
                 }}
                 onLogout={handleLogout}
