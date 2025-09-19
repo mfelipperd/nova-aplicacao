@@ -44,13 +44,11 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
   // Carregar eventos do usuário
   const loadUserEvents = useCallback(async (userId: string) => {
     try {
-      console.log('🔄 Carregando eventos do usuário:', userId);
       setLoading(true);
       const events = await eventService.getUserEvents(userId);
-      console.log('📋 Eventos carregados:', events.length, events.map(e => e.name));
       setUserEvents(events);
     } catch (error) {
-      console.error('❌ Erro ao carregar eventos do usuário:', error);
+      console.error('Erro ao carregar eventos:', error);
     } finally {
       setLoading(false);
     }
@@ -83,18 +81,11 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
   // Recarregar todos os eventos do usuário
   const reloadUserEvents = useCallback(async (userId: string) => {
     try {
-      console.log('🔄 RELOAD: Iniciando recarregamento para usuário:', userId);
       setLoading(true);
-      
-      console.log('📋 RELOAD: Carregando eventos criados...');
       await loadUserEvents(userId);
-      
-      console.log('👥 RELOAD: Carregando participações...');
       await loadUserParticipations(userId);
-      
-      console.log('✅ RELOAD: Recarregamento concluído');
     } catch (error) {
-      console.error('❌ RELOAD: Erro ao recarregar eventos:', error);
+      console.error('Erro ao recarregar eventos:', error);
     } finally {
       setLoading(false);
     }
@@ -103,17 +94,14 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
   // Carregar evento por código de convite
   const loadEventByInviteCode = useCallback(async (inviteCode: string, userId?: string) => {
     try {
-      console.log('🔍 LOAD EVENT: Carregando evento por código:', inviteCode, 'userId:', userId);
       setLoading(true);
       const event = await eventService.getEventByInviteCode(inviteCode);
       if (event) {
-        console.log('✅ LOAD EVENT: Evento encontrado:', event.name);
         setCurrentEvent(event);
         
         // Adicionar participação quando usuário entra via link
         if (userId) {
           try {
-            console.log('➕ PARTICIPAÇÃO: Adicionando participação para usuário:', userId);
             await eventParticipationService.addParticipation(
               userId,
               event.id,
@@ -121,19 +109,14 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
               event.inviteCode,
               'participant'
             );
-            console.log('✅ PARTICIPAÇÃO: Participação adicionada com sucesso');
           } catch (participationError) {
-            console.error('❌ PARTICIPAÇÃO: Erro ao adicionar participação:', participationError);
+            console.error('Erro ao adicionar participação:', participationError);
             // Não falhar o carregamento se a participação falhar
           }
-        } else {
-          console.log('⚠️ PARTICIPAÇÃO: userId não fornecido, não será criada participação');
         }
-      } else {
-        console.log('❌ LOAD EVENT: Evento não encontrado para código:', inviteCode);
       }
     } catch (error) {
-      console.error('❌ LOAD EVENT: Erro ao carregar evento por código:', error);
+      console.error('Erro ao carregar evento por código:', error);
     } finally {
       setLoading(false);
     }
@@ -148,7 +131,6 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
     
     if (eventMatch && !currentEvent) {
       const inviteCode = eventMatch[1];
-      console.log('🔍 URL: Encontrado evento na URL:', inviteCode, 'para usuário:', user.id);
       // Agora temos acesso ao userId através do contexto de autenticação
       loadEventByInviteCode(inviteCode, user.id);
     }

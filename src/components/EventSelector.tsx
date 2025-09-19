@@ -20,31 +20,6 @@ const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen || !user) return null;
 
-  // Teste simples do Firebase
-  const testFirebase = async () => {
-    try {
-      console.log('🧪 Testando Firebase...');
-      console.log('👤 User:', user);
-      console.log('🔑 User ID:', user.id);
-      
-      // Teste básico - tentar criar um evento de teste
-      const testEvent = await eventService.createEvent(
-        'Teste Firebase',
-        'Evento de teste',
-        user.id
-      );
-      
-      console.log('✅ Firebase funcionando! Evento criado:', testEvent);
-      alert('Firebase funcionando! Evento de teste criado.');
-      
-      // Deletar o evento de teste
-      await eventService.deactivateEvent(testEvent.id);
-      
-    } catch (error) {
-      console.error('❌ Erro no teste do Firebase:', error);
-      alert('Erro no Firebase: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
-    }
-  };
 
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -237,107 +212,6 @@ const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
                       </button>
                     </div>
                     
-                    {/* Botão de teste */}
-                    <button
-                      type="button"
-                      onClick={testFirebase}
-                      className="w-full px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm"
-                    >
-                      🧪 Testar Firebase
-                    </button>
-                    
-                    {/* Botão de teste para criar evento */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          console.log('🧪 TESTE: Criando evento de teste...');
-                          const testEvent = await eventService.createEvent(
-                            'Teste Debug',
-                            'Evento criado para debug',
-                            user.id
-                          );
-                          console.log('✅ TESTE: Evento criado:', testEvent);
-                          alert('Evento de teste criado com sucesso!');
-                          
-                          // Recarregar eventos
-                          await loadUserEvents(user.id);
-                        } catch (error) {
-                          console.error('❌ TESTE: Erro ao criar evento:', error);
-                          alert('Erro ao criar evento de teste: ' + error);
-                        }
-                      }}
-                      className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm mt-2"
-                    >
-                      🧪 Criar Evento Teste
-                    </button>
-                    
-                    {/* Botão de teste para buscar eventos sem orderBy */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          console.log('🧪 TESTE: Testando busca sem orderBy...');
-                          
-                          // Importar Firebase diretamente para teste
-                          const { collection, query, where, getDocs } = await import('firebase/firestore');
-                          const { db } = await import('../config/firebase');
-                          
-                          const testQuery = query(
-                            collection(db, 'parties'),
-                            where('createdBy', '==', user.id)
-                          );
-                          
-                          const snapshot = await getDocs(testQuery);
-                          console.log('🧪 TESTE: Resultado sem orderBy:', snapshot.docs.length, 'eventos');
-                          
-                          snapshot.docs.forEach((doc, index) => {
-                            const data = doc.data();
-                            console.log(`  ${index + 1}. ID: ${doc.id}, name: ${data.name}, createdBy: ${data.createdBy}`);
-                          });
-                          
-                          alert(`Encontrados ${snapshot.docs.length} eventos sem orderBy!`);
-                        } catch (error) {
-                          console.error('❌ TESTE: Erro na busca sem orderBy:', error);
-                          alert('Erro na busca sem orderBy: ' + error);
-                        }
-                      }}
-                      className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm mt-2"
-                    >
-                      🧪 Testar Busca sem OrderBy
-                    </button>
-                    
-                    {/* Botão de teste para buscar imagens */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          console.log('🧪 IMAGEM TESTE: Buscando todas as imagens...');
-                          
-                          // Importar Firebase diretamente para teste
-                          const { collection, query, getDocs } = await import('firebase/firestore');
-                          const { db } = await import('../config/firebase');
-                          
-                          const testQuery = query(collection(db, 'images'));
-                          const snapshot = await getDocs(testQuery);
-                          
-                          console.log('🧪 IMAGEM TESTE: Total de imagens na coleção:', snapshot.docs.length);
-                          
-                          snapshot.docs.forEach((doc, index) => {
-                            const data = doc.data();
-                            console.log(`  ${index + 1}. ID: ${doc.id}, eventId: ${data.eventId}, filename: ${data.filename}`);
-                          });
-                          
-                          alert(`Encontradas ${snapshot.docs.length} imagens na coleção!`);
-                        } catch (error) {
-                          console.error('❌ IMAGEM TESTE: Erro na busca:', error);
-                          alert('Erro na busca de imagens: ' + error);
-                        }
-                      }}
-                      className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm mt-2"
-                    >
-                      🧪 Testar Busca de Imagens
-                    </button>
                     
                     {/* Botão para limpar dados (APENAS PARA TESTE) */}
                     <button
@@ -411,10 +285,6 @@ const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
                           alert('❌ Erro durante a limpeza: ' + error.message);
                         }
                       }}
-                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm mt-2"
-                    >
-                      🔥 LIMPAR FIREBASE (TESTE)
-                    </button>
                   </div>
                 </div>
               </form>

@@ -40,7 +40,6 @@ export const eventParticipationService = {
       // Verificar se já existe participação
       const existingParticipation = await this.getParticipationByUserAndEvent(userId, eventId);
       if (existingParticipation) {
-        console.log('Usuário já participa deste evento');
         return existingParticipation;
       }
 
@@ -54,7 +53,6 @@ export const eventParticipationService = {
         createdAt: serverTimestamp()
       };
 
-      console.log('Adicionando participação:', participationData);
 
       const docRef = await addDoc(collection(db, 'eventParticipations'), participationData);
 
@@ -68,7 +66,6 @@ export const eventParticipationService = {
         role
       };
 
-      console.log('Participação criada com sucesso:', participation);
       return participation;
     } catch (error) {
       console.error('Erro ao adicionar participação:', error);
@@ -118,7 +115,6 @@ export const eventParticipationService = {
       if (!db) throw new Error('Firebase não inicializado');
       if (!userId) throw new Error('ID do usuário é obrigatório');
 
-      console.log('🔍 PARTICIPAÇÃO: Buscando participações para usuário:', userId);
 
       const q = query(
         collection(db, 'eventParticipations'),
@@ -129,28 +125,11 @@ export const eventParticipationService = {
       let querySnapshot;
       try {
         querySnapshot = await getDocs(q);
-        console.log(`🔍 PARTICIPAÇÃO: Encontradas ${querySnapshot.docs.length} participações para o usuário ${userId}`);
       } catch (queryError) {
         console.error('❌ ERRO na query de participações:', queryError);
         throw queryError;
       }
 
-      // Debug: Verificar se há participações na coleção de forma geral
-      try {
-        const allParticipationsQuery = query(collection(db, 'eventParticipations'));
-        const allParticipationsSnapshot = await getDocs(allParticipationsQuery);
-        console.log(`🔍 PARTICIPAÇÃO DEBUG: Total de participações na coleção: ${allParticipationsSnapshot.docs.length}`);
-        
-        if (allParticipationsSnapshot.docs.length > 0) {
-          console.log('🔍 PARTICIPAÇÃO DEBUG: Primeiras participações encontradas:');
-          allParticipationsSnapshot.docs.slice(0, 3).forEach((doc, index) => {
-            const data = doc.data();
-            console.log(`  ${index + 1}. ID: ${doc.id}, userId: ${data.userId}, eventId: ${data.eventId}, eventName: ${data.eventName}`);
-          });
-        }
-      } catch (debugError) {
-        console.error('❌ PARTICIPAÇÃO DEBUG: Erro ao buscar todas as participações:', debugError);
-      }
 
       const participations: EventParticipation[] = [];
 
@@ -167,7 +146,6 @@ export const eventParticipationService = {
         });
       });
 
-      console.log(`Encontradas ${participations.length} participações para o usuário ${userId}`);
       return participations;
     } catch (error) {
       console.error('Erro ao buscar participações do usuário:', error);
@@ -221,7 +199,6 @@ export const eventParticipationService = {
       if (!participationId) throw new Error('ID da participação é obrigatório');
 
       await deleteDoc(doc(db, 'eventParticipations', participationId));
-      console.log('Participação removida com sucesso');
     } catch (error) {
       console.error('Erro ao remover participação:', error);
       throw error;
@@ -256,7 +233,6 @@ export const eventParticipationService = {
       });
 
       await Promise.all(updatePromises);
-      console.log(`Atualizadas ${updatePromises.length} participações para o evento ${eventId}`);
     } catch (error) {
       console.error('Erro ao atualizar dados da participação:', error);
       throw error;

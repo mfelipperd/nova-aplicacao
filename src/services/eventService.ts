@@ -52,11 +52,8 @@ class EventService {
         qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${window.location.origin}/event/${inviteCode}`
       };
 
-      console.log('💾 Salvando evento no Firebase:', eventData);
       
       const docRef = await addDoc(collection(db, this.collectionName), eventData);
-      
-      console.log('✅ Evento salvo com ID:', docRef.id);
       
       const newEvent: Party = {
         id: docRef.id,
@@ -69,7 +66,6 @@ class EventService {
         qrCode: eventData.qrCode
       };
       
-      console.log('📅 Evento criado:', newEvent);
 
       // Adicionar participação do criador
       try {
@@ -157,7 +153,6 @@ class EventService {
   // Listar eventos criados pelo usuário
   async getUserEvents(userId: string): Promise<Party[]> {
     try {
-      console.log('🔍 Buscando eventos para usuário:', userId);
       
       const q = query(
         collection(db, this.collectionName),
@@ -168,28 +163,11 @@ class EventService {
       let querySnapshot;
       try {
         querySnapshot = await getDocs(q);
-        console.log(`📋 Encontrados ${querySnapshot.docs.length} eventos para o usuário ${userId}`);
       } catch (queryError) {
         console.error('❌ ERRO na query principal:', queryError);
         throw queryError;
       }
       
-      // Debug: Verificar se há eventos na coleção de forma geral
-      try {
-        const allEventsQuery = query(collection(db, this.collectionName));
-        const allEventsSnapshot = await getDocs(allEventsQuery);
-        console.log(`🔍 DEBUG: Total de eventos na coleção: ${allEventsSnapshot.docs.length}`);
-        
-        if (allEventsSnapshot.docs.length > 0) {
-          console.log('🔍 DEBUG: Primeiros eventos encontrados:');
-          allEventsSnapshot.docs.slice(0, 3).forEach((doc, index) => {
-            const data = doc.data();
-            console.log(`  ${index + 1}. ID: ${doc.id}, createdBy: ${data.createdBy}, name: ${data.name}`);
-          });
-        }
-      } catch (debugError) {
-        console.error('❌ DEBUG: Erro ao buscar todos os eventos:', debugError);
-      }
       
       const events = querySnapshot.docs.map(doc => {
         const data = doc.data();
@@ -203,7 +181,6 @@ class EventService {
           isActive: data.isActive,
           qrCode: data.qrCode
         };
-        console.log('📅 Evento encontrado:', event.name, '- ID:', event.id);
         return event;
       });
       

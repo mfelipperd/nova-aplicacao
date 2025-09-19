@@ -61,10 +61,6 @@ const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEve
 
   // Combinar eventos criados e participados, removendo duplicatas
   const allEvents = React.useMemo(() => {
-    console.log('🔄 Combinando eventos...');
-    console.log('📋 Eventos criados:', userEvents.length, userEvents.map(e => e.name));
-    console.log('👥 Participações:', userParticipations.length, userParticipations.map(p => p.eventName));
-    
     const eventMap = new Map();
     
     // Adicionar eventos criados
@@ -76,7 +72,6 @@ const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEve
         role: 'creator' as const,
         joinedAt: event.createdAt
       });
-      console.log('➕ Adicionado evento criado:', event.name);
     });
     
     // Adicionar participações (sobrescreve se já existir, mas mantém role correto)
@@ -88,16 +83,12 @@ const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEve
         role: participation.role,
         joinedAt: participation.joinedAt
       });
-      console.log('➕ Adicionada participação:', participation.eventName, '- Role:', participation.role);
     });
     
     const result = Array.from(eventMap.values()).sort((a, b) => {
       // Ordenar por data de entrada (mais recente primeiro)
       return b.joinedAt.getTime() - a.joinedAt.getTime();
     });
-    
-    console.log('📊 Total de eventos combinados:', result.length);
-    console.log('📋 Lista final:', result.map(e => `${e.name} (${e.role})`));
     
     return result;
   }, [userEvents, userParticipations]);
@@ -133,66 +124,13 @@ const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEve
                   Selecione um evento para visualizar suas fotos
                 </p>
               </div>
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => user && reloadUserEvents(user.id)}
-                  className="p-2 hover:bg-encibra-gray-100 dark:hover:bg-encibra-gray-700 rounded-lg transition-colors"
-                  title="Recarregar eventos"
-                >
-                  <RefreshCw className="w-4 h-4 text-encibra-gray-500 dark:text-encibra-gray-400" />
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('🧪 TESTE: Forçando recarregamento...');
-                    console.log('👤 User:', user);
-                    console.log('📋 UserEvents atual:', userEvents);
-                    console.log('👥 UserParticipations atual:', userParticipations);
-                    if (user) {
-                      reloadUserEvents(user.id);
-                    }
-                  }}
-                  className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                  title="Teste de debug"
-                >
-                  🧪
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!user || !currentEvent) {
-                      alert('Usuário ou evento atual não encontrado');
-                      return;
-                    }
-                    
-                    try {
-                      console.log('🧪 TESTE: Criando participação manual...');
-                      const { eventParticipationService } = await import('../services/eventParticipationService');
-                      
-                      await eventParticipationService.addParticipation(
-                        user.id,
-                        currentEvent.id,
-                        currentEvent.name,
-                        currentEvent.inviteCode,
-                        'participant'
-                      );
-                      
-                      console.log('✅ TESTE: Participação criada com sucesso');
-                      alert('Participação criada com sucesso!');
-                      
-                      // Recarregar eventos
-                      if (user) {
-                        reloadUserEvents(user.id);
-                      }
-                    } catch (error) {
-                      console.error('❌ TESTE: Erro ao criar participação:', error);
-                      alert('Erro ao criar participação: ' + error.message);
-                    }
-                  }}
-                  className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-                  title="Criar participação manual"
-                >
-                  ➕
-                </button>
-              </div>
+              <button
+                onClick={() => user && reloadUserEvents(user.id)}
+                className="p-2 hover:bg-encibra-gray-100 dark:hover:bg-encibra-gray-700 rounded-lg transition-colors"
+                title="Recarregar eventos"
+              >
+                <RefreshCw className="w-4 h-4 text-encibra-gray-500 dark:text-encibra-gray-400" />
+              </button>
             </div>
           </div>
 

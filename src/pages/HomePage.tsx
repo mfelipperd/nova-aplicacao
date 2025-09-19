@@ -23,9 +23,7 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const loadImages = async () => {
       try {
-        console.log('🔄 HOMEPAGE: Carregando imagens para evento:', currentEvent?.id, currentEvent?.name);
         const firebaseImages = await imageService.getAllImages(currentEvent?.id);
-        console.log('🔄 HOMEPAGE: Imagens carregadas:', firebaseImages.length);
         setImages(firebaseImages);
       } catch (error) {
         console.error('Erro ao carregar imagens:', error);
@@ -61,7 +59,6 @@ const HomePage: React.FC = () => {
   // Escutar evento customizado para recarregamento forçado
   useEffect(() => {
     const handleForceReload = (event: CustomEvent) => {
-      console.log('🔄 HOMEPAGE: Recebido evento de recarregamento forçado');
       setImages(event.detail);
     };
 
@@ -95,9 +92,7 @@ const HomePage: React.FC = () => {
     // Recarregar imagens do Firebase para ter os dados mais atualizados
     const reloadImages = async () => {
       try {
-        console.log('🔄 HOMEPAGE: Recarregando imagens após comentário para evento:', currentEvent?.id);
         const firebaseImages = await imageService.getAllImages(currentEvent?.id);
-        console.log('🔄 HOMEPAGE: Imagens recarregadas após comentário:', firebaseImages.length);
         setImages(firebaseImages);
       } catch (error) {
         console.error('Erro ao recarregar imagens:', error);
@@ -133,9 +128,7 @@ const HomePage: React.FC = () => {
       }
       
       // Recarregar imagens do Firebase para ter os dados mais atualizados
-      console.log('🔄 HOMEPAGE: Recarregando imagens após curtida para evento:', currentEvent?.id);
       const firebaseImages = await imageService.getAllImages(currentEvent?.id);
-      console.log('🔄 HOMEPAGE: Imagens recarregadas após curtida:', firebaseImages.length);
       setImages(firebaseImages);
     } catch (error) {
       console.error('Erro ao dar like:', error);
