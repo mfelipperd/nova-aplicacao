@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Download, MessageCircle, Heart, MoreVertical, Trash2 } from 'lucide-react';
 import type { Image as ImageType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { imageService } from '../services/imageService';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ImageCardSkeleton from './ImageCardSkeleton';
 
 interface FeedProps {
   images: ImageType[];
@@ -16,6 +17,7 @@ interface FeedProps {
 const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, onDeleteImage }) => {
   const { user } = useAuth();
   const [newCommentContent, setNewCommentContent] = useState<{ [key: string]: string }>({});
+  const [imageLoadingStates, setImageLoadingStates] = useState<{ [key: string]: boolean }>({});
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     imageId: string | null;
@@ -28,9 +30,33 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, o
     isDeleting: false
   });
 
-  // Função para processar URLs de avatar do Google
-  const processAvatarUrl = (avatarUrl: string | undefined, size: number = 40): string => {
-    if (!avatarUrl) return `https://via.placeholder.com/${size}`;
+  // Função para gerar avatar baseado nas iniciais
+  const generateInitialsAvatar = (name: string, size: number = 40): string => {
+    const initials = name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+    const colorIndex = name.charCodeAt(0) % colors.length;
+    const backgroundColor = colors[colorIndex];
+    
+    const svg = `
+      <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="${backgroundColor}"/>
+        <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="${size * 0.4}" 
+              fill="white" text-anchor="middle" dy="0.35em">${initials}</text>
+      </svg>
+    `;
+    
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+  };
+
+  // Função para processar URLs de avatar
+  const processAvatarUrl = (avatarUrl: string | undefined, name: string, size: number = 40): string => {
+    if (!avatarUrl) return generateInitialsAvatar(name, size);
     
     // Se for URL do Google, ajustar para melhor compatibilidade
     if (avatarUrl.includes('googleusercontent.com')) {
@@ -41,6 +67,42 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, o
     
     return avatarUrl;
   };
+
+  // Funções para gerenciar o estado de carregamento das imagens
+  const handleImageLoad = (imageId: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [imageId]: false }));
+  };
+
+  const handleImageError = (imageId: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [imageId]: false }));
+  };
+
+  // Inicializar estado de carregamento para novas imagens
+  const initialLoadingStates = useMemo(() => {
+    const states: { [key: string]: boolean } = {};
+    images.forEach(image => {
+      states[image.id] = true;
+    });
+    return states;
+  }, [images]);
+
+  // Atualizar estado apenas quando há novas imagens
+  useEffect(() => {
+    setImageLoadingStates(prev => {
+      const newStates = { ...prev };
+      let hasChanges = false;
+      
+      Object.keys(initialLoadingStates).forEach(imageId => {
+        if (!(imageId in newStates)) {
+          newStates[imageId] = true;
+          hasChanges = true;
+        }
+      });
+      
+      return hasChanges ? newStates : prev;
+    });
+  }, [initialLoadingStates]);
+
 
 
 
@@ -127,28 +189,35 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, o
 
   return (
     <div className="w-full space-y-4 px-2 sm:max-w-2xl sm:mx-auto sm:space-y-6 sm:px-0">
-      {images.map((image) => (
-        <div key={image.id} className="card-mobile overflow-hidden">
+      {images.map((image) => {
+        const isLoading = imageLoadingStates[image.id] ?? true;
+
+        return (
+          <div key={image.id}>
+            {/* Imagem oculta para detectar carregamento */}
+            {isLoading && (
+              <img
+                src={image.url}
+                alt=""
+                style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
+                onLoad={() => handleImageLoad(image.id)}
+                onError={() => handleImageError(image.id)}
+              />
+            )}
+            
+            {isLoading ? (
+              <ImageCardSkeleton />
+            ) : (
+              <div className="card-mobile overflow-hidden">
           {/* Header do post */}
           <div className="flex items-center justify-between p-3 sm:p-4 border-b border-encibra-gray-100 dark:border-encibra-gray-700">
             <div className="flex items-center space-x-3">
                   <img
-                    src={processAvatarUrl(image.userAvatar, 40)}
+                    src={processAvatarUrl(image.userAvatar, image.userName, 40)}
                     alt={image.userName}
                     className="w-10 h-10 rounded-full border-2 border-encibra-gray-200 dark:border-encibra-gray-600"
                     onError={(e) => {
-                      console.log('❌ Avatar failed to load:', {
-                        url: image.userAvatar,
-                        userName: image.userName,
-                        error: e.currentTarget.src
-                      });
-                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(image.userName)}&background=random&color=fff&size=40`;
-                    }}
-                    onLoad={() => {
-                      console.log('✅ Avatar loaded successfully:', {
-                        url: image.userAvatar,
-                        userName: image.userName
-                      });
+                      e.currentTarget.src = generateInitialsAvatar(image.userName, 40);
                     }}
                   />
                   <div>
@@ -231,11 +300,11 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, o
                 {image.comments.slice(0, 3).map((comment) => (
                   <div key={comment.id} className="flex items-start space-x-2">
                           <img
-                            src={processAvatarUrl(comment.userAvatar, 24)}
+                            src={processAvatarUrl(comment.userAvatar, comment.userName, 24)}
                             alt={comment.userName}
                             className="w-6 h-6 rounded-full flex-shrink-0"
                             onError={(e) => {
-                              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.userName)}&background=random&color=fff&size=24`;
+                              e.currentTarget.src = generateInitialsAvatar(comment.userName, 24);
                             }}
                           />
                     <div className="flex-1 min-w-0">
@@ -261,11 +330,11 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, o
             {/* Campo de comentário */}
             <div className="flex items-center space-x-2 pt-3 border-t border-encibra-gray-100 dark:border-encibra-gray-700">
                     <img
-                      src={user?.avatar || 'https://via.placeholder.com/24'}
+                      src={processAvatarUrl(user?.avatar, user?.name || 'Usuário', 24)}
                       alt={user?.name}
                       className="w-6 h-6 rounded-full flex-shrink-0"
                       onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/24';
+                        e.currentTarget.src = generateInitialsAvatar(user?.name || 'Usuário', 24);
                       }}
                     />
               <div className="flex-1 flex items-center space-x-2">
@@ -295,8 +364,11 @@ const Feed: React.FC<FeedProps> = ({ images, onDownload, onLike, onAddComment, o
               </div>
             </div>
           </div>
-        </div>
-      ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* Modal de Confirmação de Delete */}
       <DeleteConfirmationModal
