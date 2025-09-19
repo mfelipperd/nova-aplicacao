@@ -1,0 +1,42 @@
+mutation CreateNewEvent @auth(level: USER) {
+  event_insert(
+    data: {
+      name: "New Event"
+      description: "A brand new event"
+      eventDate: "2024-01-01"
+      isActive: true
+      qrCodeUrl: "https://example.com/qr"
+    }
+  )
+}
+
+query ListActiveEvents @auth(level: PUBLIC) {
+  events(where: { isActive: { eq: true } }) {
+    id
+    name
+    description
+    eventDate
+    qrCodeUrl
+  }
+}
+
+mutation AddCommentToPhoto($photoId: UUID!, $text: String!) @auth(level: USER) {
+  comment_insert(data: { photoId: $photoId, text: $text })
+}
+
+query ListPhotosForEvent($eventId: UUID!) @auth(level: PUBLIC) {
+  photos(where: { eventId: { eq: $eventId } }) {
+    id
+    imageUrl
+    caption
+    uploader {
+      displayName
+    }
+    comments_on_photo {
+      text
+      author {
+        displayName
+      }
+    }
+  }
+}

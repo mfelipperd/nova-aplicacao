@@ -1,0 +1,15 @@
+# 🔥 CONFIGURAÇÕES DO FIREBASE
+# Copie estas configurações para o arquivo .env
+
+VITE_FIREBASE_API_KEY=AIzaSyCQHr-944XH-DQd7LzDXlGCj5R5Hv8dX5M
+VITE_FIREBASE_AUTH_DOMAIN=image-shower-45861.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=image-shower-45861
+VITE_FIREBASE_STORAGE_BUCKET=image-shower-45861.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=596753984019
+VITE_FIREBASE_APP_ID=1:596753984019:web:1e7c93618e7b817b432de6
+VITE_FIREBASE_MEASUREMENT_ID=G-CBEN6BTQVT
+
+# 📋 INSTRUÇÕES:
+# 1. Crie um arquivo .env na raiz do projeto
+# 2. Cole as configurações acima no arquivo .env
+# 3. Execute: npm run dev

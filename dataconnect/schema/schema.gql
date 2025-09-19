@@ -1,0 +1,38 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+}
+
+type Event @table {
+  name: String!
+  createdAt: Timestamp!
+  qrCodeUrl: String!
+  description: String
+  eventDate: Date
+  isActive: Boolean
+  organizer: User
+}
+
+type Photo @table {
+  imageUrl: String!
+  createdAt: Timestamp!
+  caption: String
+  uploader: User
+  event: Event
+}
+
+type Comment @table {
+  text: String!
+  createdAt: Timestamp!
+  author: User
+  photo: Photo
+}
+
+type ProjectionScreen @table {
+  isActive: Boolean!
+  createdAt: Timestamp!
+  displayInterval: Int
+  event: Event
+}
