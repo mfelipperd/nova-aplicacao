@@ -50,6 +50,7 @@ export const imageService = {
       const downloadURL = await getDownloadURL(uploadResult.ref);
       
       // Criar documento no Firestore
+      console.log('📤 IMAGEM: Salvando imagem com eventId:', eventId);
       
       const imageData = {
         url: downloadURL,
@@ -63,7 +64,9 @@ export const imageService = {
         eventId: eventId || null
       };
       
+      console.log('📤 IMAGEM: Dados da imagem:', imageData);
       const docRef = await addDoc(collection(db, 'images'), imageData);
+      console.log('✅ IMAGEM: Imagem salva com ID:', docRef.id);
       
       return {
         id: docRef.id,
@@ -103,6 +106,8 @@ export const imageService = {
   // Buscar todas as imagens (opcionalmente filtradas por evento)
   async getAllImages(eventId?: string): Promise<Image[]> {
     try {
+      console.log('🔍 IMAGEM: Buscando imagens para eventId:', eventId);
+      
       let q;
       if (eventId) {
         q = query(
@@ -110,10 +115,14 @@ export const imageService = {
           where('eventId', '==', eventId),
           orderBy('uploadedAt', 'desc')
         );
+        console.log('🔍 IMAGEM: Query com filtro por eventId:', eventId);
       } else {
         q = query(collection(db, 'images'), orderBy('uploadedAt', 'desc'));
+        console.log('🔍 IMAGEM: Query sem filtro (todas as imagens)');
       }
+      
       const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q);
+      console.log(`📷 IMAGEM: Encontradas ${querySnapshot.docs.length} imagens`);
       
       return querySnapshot.docs.map(doc => {
         const data = doc.data();

@@ -156,6 +156,42 @@ const EventSelectorDropdown: React.FC<EventSelectorDropdownProps> = ({ onOpenEve
                 >
                   🧪
                 </button>
+                <button
+                  onClick={async () => {
+                    if (!user || !currentEvent) {
+                      alert('Usuário ou evento atual não encontrado');
+                      return;
+                    }
+                    
+                    try {
+                      console.log('🧪 TESTE: Criando participação manual...');
+                      const { eventParticipationService } = await import('../services/eventParticipationService');
+                      
+                      await eventParticipationService.addParticipation(
+                        user.id,
+                        currentEvent.id,
+                        currentEvent.name,
+                        currentEvent.inviteCode,
+                        'participant'
+                      );
+                      
+                      console.log('✅ TESTE: Participação criada com sucesso');
+                      alert('Participação criada com sucesso!');
+                      
+                      // Recarregar eventos
+                      if (user) {
+                        reloadUserEvents(user.id);
+                      }
+                    } catch (error) {
+                      console.error('❌ TESTE: Erro ao criar participação:', error);
+                      alert('Erro ao criar participação: ' + error.message);
+                    }
+                  }}
+                  className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                  title="Criar participação manual"
+                >
+                  ➕
+                </button>
               </div>
             </div>
           </div>

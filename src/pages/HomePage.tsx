@@ -23,7 +23,9 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const loadImages = async () => {
       try {
+        console.log('🔄 HOMEPAGE: Carregando imagens para evento:', currentEvent?.id, currentEvent?.name);
         const firebaseImages = await imageService.getAllImages(currentEvent?.id);
+        console.log('🔄 HOMEPAGE: Imagens carregadas:', firebaseImages.length);
         setImages(firebaseImages);
       } catch (error) {
         console.error('Erro ao carregar imagens:', error);
@@ -56,6 +58,20 @@ const HomePage: React.FC = () => {
     loadImages();
   }, [currentEvent]);
 
+  // Escutar evento customizado para recarregamento forçado
+  useEffect(() => {
+    const handleForceReload = (event: CustomEvent) => {
+      console.log('🔄 HOMEPAGE: Recebido evento de recarregamento forçado');
+      setImages(event.detail);
+    };
+
+    window.addEventListener('forceReloadImages', handleForceReload as EventListener);
+    
+    return () => {
+      window.removeEventListener('forceReloadImages', handleForceReload as EventListener);
+    };
+  }, []);
+
   const handleImageUpload = async (image: Image) => {
     setImages(prev => [image, ...prev]);
   };
@@ -70,10 +86,18 @@ const HomePage: React.FC = () => {
   };
 
   const handleAddComment = (_imageId: string, _content: string) => {
+    // Validar que há um evento ativo
+    if (!currentEvent) {
+      alert('⚠️ Você precisa estar em um evento para comentar em imagens.\n\nCrie ou entre em um evento primeiro.');
+      return;
+    }
+    
     // Recarregar imagens do Firebase para ter os dados mais atualizados
     const reloadImages = async () => {
       try {
-        const firebaseImages = await imageService.getAllImages();
+        console.log('🔄 HOMEPAGE: Recarregando imagens após comentário para evento:', currentEvent?.id);
+        const firebaseImages = await imageService.getAllImages(currentEvent?.id);
+        console.log('🔄 HOMEPAGE: Imagens recarregadas após comentário:', firebaseImages.length);
         setImages(firebaseImages);
       } catch (error) {
         console.error('Erro ao recarregar imagens:', error);
@@ -85,6 +109,12 @@ const HomePage: React.FC = () => {
 
   const handleLike = async (imageId: string) => {
     if (!user) return;
+    
+    // Validar que há um evento ativo
+    if (!currentEvent) {
+      alert('⚠️ Você precisa estar em um evento para curtir imagens.\n\nCrie ou entre em um evento primeiro.');
+      return;
+    }
     
     try {
       // Encontrar a imagem atual
@@ -103,7 +133,9 @@ const HomePage: React.FC = () => {
       }
       
       // Recarregar imagens do Firebase para ter os dados mais atualizados
-      const firebaseImages = await imageService.getAllImages();
+      console.log('🔄 HOMEPAGE: Recarregando imagens após curtida para evento:', currentEvent?.id);
+      const firebaseImages = await imageService.getAllImages(currentEvent?.id);
+      console.log('🔄 HOMEPAGE: Imagens recarregadas após curtida:', firebaseImages.length);
       setImages(firebaseImages);
     } catch (error) {
       console.error('Erro ao dar like:', error);
@@ -172,7 +204,31 @@ const HomePage: React.FC = () => {
 
       {/* Main Content */}
       <main className="py-4 sm:py-6 pb-safe">
-        {currentView === 'feed' ? (
+        {!currentEvent ? (
+          <div className="w-full px-2 sm:max-w-2xl sm:mx-auto">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-24 h-24 mx-auto bg-encibra-100 dark:bg-encibra-800 rounded-full flex items-center justify-center mb-6">
+                <span className="text-4xl">🎉</span>
+              </div>
+              <h3 className="text-xl font-semibold text-encibra-900 dark:text-white mb-2">
+                Nenhum evento ativo
+              </h3>
+              <p className="text-encibra-600 dark:text-encibra-300 max-w-md mb-6">
+                Para ver e interagir com as fotos, você precisa estar em um evento. Crie um novo evento ou entre em um existente.
+              </p>
+              <button
+                onClick={() => {
+                  // Abrir o EventSelector através do popover do usuário
+                  const event = new CustomEvent('openEventSelector');
+                  window.dispatchEvent(event);
+                }}
+                className="px-6 py-3 bg-encibra-primary-600 text-white rounded-lg hover:bg-encibra-primary-700 transition-colors"
+              >
+                Gerenciar Eventos
+              </button>
+            </div>
+          </div>
+        ) : currentView === 'feed' ? (
           <Feed
             images={images}
             onDownload={handleDownload}

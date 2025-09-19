@@ -306,6 +306,115 @@ const EventSelector: React.FC<EventSelectorProps> = ({ isOpen, onClose }) => {
                     >
                       🧪 Testar Busca sem OrderBy
                     </button>
+                    
+                    {/* Botão de teste para buscar imagens */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          console.log('🧪 IMAGEM TESTE: Buscando todas as imagens...');
+                          
+                          // Importar Firebase diretamente para teste
+                          const { collection, query, getDocs } = await import('firebase/firestore');
+                          const { db } = await import('../config/firebase');
+                          
+                          const testQuery = query(collection(db, 'images'));
+                          const snapshot = await getDocs(testQuery);
+                          
+                          console.log('🧪 IMAGEM TESTE: Total de imagens na coleção:', snapshot.docs.length);
+                          
+                          snapshot.docs.forEach((doc, index) => {
+                            const data = doc.data();
+                            console.log(`  ${index + 1}. ID: ${doc.id}, eventId: ${data.eventId}, filename: ${data.filename}`);
+                          });
+                          
+                          alert(`Encontradas ${snapshot.docs.length} imagens na coleção!`);
+                        } catch (error) {
+                          console.error('❌ IMAGEM TESTE: Erro na busca:', error);
+                          alert('Erro na busca de imagens: ' + error);
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm mt-2"
+                    >
+                      🧪 Testar Busca de Imagens
+                    </button>
+                    
+                    {/* Botão para limpar dados (APENAS PARA TESTE) */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const confirmClear = confirm(
+                          '⚠️ ATENÇÃO: Isso vai deletar TODOS os dados do Firebase!\n\n' +
+                          '• Todas as imagens\n' +
+                          '• Todos os eventos\n' +
+                          '• Todas as participações\n' +
+                          '• Todas as notificações\n\n' +
+                          'Esta ação NÃO PODE ser desfeita!\n\n' +
+                          'Tem certeza que deseja continuar?'
+                        );
+                        
+                        if (!confirmClear) return;
+                        
+                        try {
+                          console.log('🔥 LIMPEZA: Iniciando limpeza do Firebase...');
+                          
+                          // Importar Firebase
+                          const { collection, query, getDocs, writeBatch, doc } = await import('firebase/firestore');
+                          const { getStorage, ref, listAll, deleteObject } = await import('firebase/storage');
+                          const { db } = await import('../config/firebase');
+                          const storage = getStorage();
+                          
+                          // Coleções para limpar
+                          const collections = ['images', 'parties', 'eventParticipations', 'notifications'];
+                          
+                          for (const collectionName of collections) {
+                            console.log(`🗑️  Limpando coleção: ${collectionName}`);
+                            
+                            const collectionRef = collection(db, collectionName);
+                            const snapshot = await getDocs(collectionRef);
+                            
+                            if (snapshot.empty) {
+                              console.log(`   ✅ Coleção ${collectionName} já está vazia`);
+                              continue;
+                            }
+                            
+                            console.log(`   📊 Encontrados ${snapshot.docs.length} documentos`);
+                            
+                            // Deletar em lotes de 500
+                            const batch = writeBatch(db);
+                            let batchCount = 0;
+                            
+                            for (const docSnapshot of snapshot.docs) {
+                              batch.delete(doc(db, collectionName, docSnapshot.id));
+                              batchCount++;
+                              
+                              if (batchCount === 500) {
+                                await batch.commit();
+                                console.log(`   ✅ Deletados ${batchCount} documentos`);
+                                batchCount = 0;
+                              }
+                            }
+                            
+                            if (batchCount > 0) {
+                              await batch.commit();
+                              console.log(`   ✅ Deletados ${batchCount} documentos finais`);
+                            }
+                            
+                            console.log(`   ✅ Coleção ${collectionName} limpa!`);
+                          }
+                          
+                          console.log('🎉 Limpeza do Firebase concluída!');
+                          alert('✅ Firebase limpo com sucesso!\n\nTodas as coleções foram esvaziadas.');
+                          
+                        } catch (error) {
+                          console.error('❌ LIMPEZA: Erro durante a limpeza:', error);
+                          alert('❌ Erro durante a limpeza: ' + error.message);
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm mt-2"
+                    >
+                      🔥 LIMPAR FIREBASE (TESTE)
+                    </button>
                   </div>
                 </div>
               </form>

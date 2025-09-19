@@ -83,6 +83,12 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpload, ev
   const uploadAllFiles = async () => {
     if (!user || selectedFiles.length === 0) return;
 
+    // Validar que há um evento ativo
+    if (!eventId) {
+      alert('⚠️ Você precisa estar em um evento para fazer upload de imagens.\n\nCrie ou entre em um evento primeiro.');
+      return;
+    }
+
     const pendingFiles = selectedFiles.filter(file => file.status === 'pending');
     if (pendingFiles.length === 0) return;
 

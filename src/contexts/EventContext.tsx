@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { eventService } from '../services/eventService';
 import { eventParticipationService, type EventParticipation } from '../services/eventParticipationService';
+import { useAuth } from './AuthContext';
 import type { Party } from '../types';
 
 interface EventContextType {
@@ -33,6 +34,7 @@ interface EventProviderProps {
 }
 
 export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
+  const { user } = useAuth();
   const [currentEvent, setCurrentEvent] = useState<Party | null>(null);
   const [userEvents, setUserEvents] = useState<Party[]>([]);
   const [userParticipations, setUserParticipations] = useState<EventParticipation[]>([]);
@@ -101,14 +103,17 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
   // Carregar evento por código de convite
   const loadEventByInviteCode = useCallback(async (inviteCode: string, userId?: string) => {
     try {
+      console.log('🔍 LOAD EVENT: Carregando evento por código:', inviteCode, 'userId:', userId);
       setLoading(true);
       const event = await eventService.getEventByInviteCode(inviteCode);
       if (event) {
+        console.log('✅ LOAD EVENT: Evento encontrado:', event.name);
         setCurrentEvent(event);
         
         // Adicionar participação quando usuário entra via link
         if (userId) {
           try {
+            console.log('➕ PARTICIPAÇÃO: Adicionando participação para usuário:', userId);
             await eventParticipationService.addParticipation(
               userId,
               event.id,
@@ -116,14 +121,19 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
               event.inviteCode,
               'participant'
             );
+            console.log('✅ PARTICIPAÇÃO: Participação adicionada com sucesso');
           } catch (participationError) {
-            console.error('Erro ao adicionar participação:', participationError);
+            console.error('❌ PARTICIPAÇÃO: Erro ao adicionar participação:', participationError);
             // Não falhar o carregamento se a participação falhar
           }
+        } else {
+          console.log('⚠️ PARTICIPAÇÃO: userId não fornecido, não será criada participação');
         }
+      } else {
+        console.log('❌ LOAD EVENT: Evento não encontrado para código:', inviteCode);
       }
     } catch (error) {
-      console.error('Erro ao carregar evento por código:', error);
+      console.error('❌ LOAD EVENT: Erro ao carregar evento por código:', error);
     } finally {
       setLoading(false);
     }
@@ -131,19 +141,20 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
 
   // Verificar se há evento na URL ao inicializar (apenas uma vez)
   useEffect(() => {
-    if (initialized) return;
+    if (initialized || !user) return;
     
     const path = window.location.pathname;
     const eventMatch = path.match(/\/event\/([A-Z0-9]+)/);
     
     if (eventMatch && !currentEvent) {
       const inviteCode = eventMatch[1];
-      // Nota: userId será passado quando o contexto for usado com AuthContext
-      loadEventByInviteCode(inviteCode);
+      console.log('🔍 URL: Encontrado evento na URL:', inviteCode, 'para usuário:', user.id);
+      // Agora temos acesso ao userId através do contexto de autenticação
+      loadEventByInviteCode(inviteCode, user.id);
     }
     
     setInitialized(true);
-  }, [initialized, currentEvent, loadEventByInviteCode]);
+  }, [initialized, currentEvent, loadEventByInviteCode, user]);
 
   const value: EventContextType = useMemo(() => ({
     currentEvent,

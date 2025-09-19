@@ -93,6 +93,20 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
     loadUserParticipations(user.id);
   }, [user?.id, loadUserEvents, loadUserParticipations]);
 
+  // Escutar evento customizado para abrir o EventSelector
+  useEffect(() => {
+    const handleOpenEventSelector = () => {
+      setShowEventSelector(true);
+      setIsOpen(false); // Fechar o popover
+    };
+
+    window.addEventListener('openEventSelector', handleOpenEventSelector);
+    
+    return () => {
+      window.removeEventListener('openEventSelector', handleOpenEventSelector);
+    };
+  }, []);
+
   if (!user) return null;
 
   return (
@@ -248,6 +262,217 @@ const SimpleUserPopover: React.FC<SimpleUserPopoverProps> = ({
               </button>
 
               {/* Sair */}
+              {/* Botão de teste para verificar imagens */}
+              <button
+                onClick={async () => {
+                  try {
+                    console.log('🧪 TESTE: Verificando imagens no Firebase...');
+                    
+                    // Importar Firebase
+                    const { collection, query, getDocs, where } = await import('firebase/firestore');
+                    const { db } = await import('../config/firebase');
+                    
+                    // Verificar todas as imagens
+                    const allImagesQuery = query(collection(db, 'images'));
+                    const allImagesSnapshot = await getDocs(allImagesQuery);
+                    console.log(`📷 TOTAL: ${allImagesSnapshot.docs.length} imagens no Firebase`);
+                    
+                    // Verificar imagens do usuário atual
+                    const userImagesQuery = query(collection(db, 'images'), where('userId', '==', user.id));
+                    const userImagesSnapshot = await getDocs(userImagesQuery);
+                    console.log(`👤 MINHAS: ${userImagesSnapshot.docs.length} imagens do usuário ${user.id}`);
+                    
+                    // Mostrar detalhes
+                    allImagesSnapshot.docs.forEach((doc, index) => {
+                      const data = doc.data();
+                      console.log(`  ${index + 1}. ID: ${doc.id}, userId: ${data.userId}, eventId: ${data.eventId}, filename: ${data.filename}`);
+                    });
+                    
+                    alert(`📊 Verificação completa!\n\nTotal de imagens: ${allImagesSnapshot.docs.length}\nSuas imagens: ${userImagesSnapshot.docs.length}\n\nVerifique o console para detalhes.`);
+                    
+                  } catch (error) {
+                    console.error('❌ TESTE: Erro na verificação:', error);
+                    alert('❌ Erro na verificação: ' + error.message);
+                  }
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-blue-600 dark:text-blue-400"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                  <span className="text-blue-600 dark:text-blue-300 text-lg">🔍</span>
+                </div>
+                <span className="text-blue-600 dark:text-blue-400">Verificar Imagens (TESTE)</span>
+              </button>
+
+              {/* Botão para recarregar imagens */}
+              <button
+                onClick={async () => {
+                  try {
+                    console.log('🔄 RECARREGAMENTO: Forçando recarregamento das imagens...');
+                    
+                    // Importar Firebase
+                    const { collection, query, getDocs, where, orderBy } = await import('firebase/firestore');
+                    const { db } = await import('../config/firebase');
+                    
+                    // Buscar imagens do evento atual
+                    const { currentEvent } = await import('../contexts/EventContext');
+                    const eventId = currentEvent?.id;
+                    
+                    console.log('🔄 RECARREGAMENTO: Buscando imagens para evento:', eventId);
+                    
+                    let imagesQuery;
+                    if (eventId) {
+                      imagesQuery = query(
+                        collection(db, 'images'), 
+                        where('eventId', '==', eventId),
+                        orderBy('uploadedAt', 'desc')
+                      );
+                    } else {
+                      imagesQuery = query(collection(db, 'images'), orderBy('uploadedAt', 'desc'));
+                    }
+                    
+                    const snapshot = await getDocs(imagesQuery);
+                    console.log(`🔄 RECARREGAMENTO: Encontradas ${snapshot.docs.length} imagens`);
+                    
+                    // Mapear para o formato esperado
+                    const images = snapshot.docs.map(doc => {
+                      const data = doc.data();
+                      return {
+                        id: doc.id,
+                        url: data.url,
+                        filename: data.filename,
+                        uploadedAt: data.uploadedAt?.toDate() || new Date(),
+                        userId: data.userId,
+                        userName: data.userName,
+                        userAvatar: data.userAvatar,
+                        comments: data.comments || [],
+                        likes: data.likes || 0,
+                        likedBy: data.likedBy || [],
+                        eventId: data.eventId
+                      };
+                    });
+                    
+                    // Disparar evento customizado para atualizar o HomePage
+                    window.dispatchEvent(new CustomEvent('forceReloadImages', { detail: images }));
+                    
+                    alert(`🔄 Recarregamento forçado!\n\nEncontradas ${images.length} imagens.\nVerifique se as imagens foram atualizadas na interface.`);
+                    
+                  } catch (error) {
+                    console.error('❌ RECARREGAMENTO: Erro:', error);
+                    alert('❌ Erro no recarregamento: ' + error.message);
+                  }
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-600 dark:text-green-400"
+              >
+                <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                  <span className="text-green-600 dark:text-green-300 text-lg">🔄</span>
+                </div>
+                <span className="text-green-600 dark:text-green-400">Recarregar Imagens (TESTE)</span>
+              </button>
+
+              {/* Botão de limpeza do Firebase (APENAS PARA TESTE) */}
+              <button
+                onClick={async () => {
+                  const confirmClear = confirm(
+                    '⚠️ ATENÇÃO: Isso vai deletar TODOS os SEUS dados!\n\n' +
+                    '• Suas imagens\n' +
+                    '• Seus eventos criados\n' +
+                    '• Suas participações\n' +
+                    '• Suas notificações\n\n' +
+                    'Esta ação NÃO PODE ser desfeita!\n\n' +
+                    'Tem certeza que deseja continuar?'
+                  );
+                  
+                  if (!confirmClear) return;
+                  
+                  try {
+                    console.log('🔥 LIMPEZA: Iniciando limpeza do Firebase...');
+                    
+                    // Importar Firebase
+                    const { collection, query, getDocs, writeBatch, doc, deleteDoc, where } = await import('firebase/firestore');
+                    const { db } = await import('../config/firebase');
+                    
+                    // Limpar apenas documentos que o usuário tem permissão
+                    console.log(`🗑️  Limpando dados do usuário: ${user.id}`);
+                    
+                    // 1. Limpar imagens do usuário
+                    console.log('📷 Limpando imagens do usuário...');
+                    const imagesQuery = query(collection(db, 'images'), where('userId', '==', user.id));
+                    const imagesSnapshot = await getDocs(imagesQuery);
+                    console.log(`   📊 Encontradas ${imagesSnapshot.docs.length} imagens do usuário`);
+                    
+                    for (const docSnapshot of imagesSnapshot.docs) {
+                      try {
+                        await deleteDoc(doc(db, 'images', docSnapshot.id));
+                        console.log(`   ✅ Imagem deletada: ${docSnapshot.id}`);
+                      } catch (error) {
+                        console.error(`   ❌ Erro ao deletar imagem ${docSnapshot.id}:`, error);
+                      }
+                    }
+                    
+                    // 2. Limpar eventos criados pelo usuário
+                    console.log('🎉 Limpando eventos criados pelo usuário...');
+                    const partiesQuery = query(collection(db, 'parties'), where('createdBy', '==', user.id));
+                    const partiesSnapshot = await getDocs(partiesQuery);
+                    console.log(`   📊 Encontrados ${partiesSnapshot.docs.length} eventos criados pelo usuário`);
+                    
+                    for (const docSnapshot of partiesSnapshot.docs) {
+                      try {
+                        await deleteDoc(doc(db, 'parties', docSnapshot.id));
+                        console.log(`   ✅ Evento deletado: ${docSnapshot.id}`);
+                      } catch (error) {
+                        console.error(`   ❌ Erro ao deletar evento ${docSnapshot.id}:`, error);
+                      }
+                    }
+                    
+                    // 3. Limpar participações do usuário
+                    console.log('👥 Limpando participações do usuário...');
+                    const participationsQuery = query(collection(db, 'eventParticipations'), where('userId', '==', user.id));
+                    const participationsSnapshot = await getDocs(participationsQuery);
+                    console.log(`   📊 Encontradas ${participationsSnapshot.docs.length} participações do usuário`);
+                    
+                    for (const docSnapshot of participationsSnapshot.docs) {
+                      try {
+                        await deleteDoc(doc(db, 'eventParticipations', docSnapshot.id));
+                        console.log(`   ✅ Participação deletada: ${docSnapshot.id}`);
+                      } catch (error) {
+                        console.error(`   ❌ Erro ao deletar participação ${docSnapshot.id}:`, error);
+                      }
+                    }
+                    
+                    // 4. Limpar notificações do usuário
+                    console.log('🔔 Limpando notificações do usuário...');
+                    const notificationsQuery = query(collection(db, 'notifications'), where('userId', '==', user.id));
+                    const notificationsSnapshot = await getDocs(notificationsQuery);
+                    console.log(`   📊 Encontradas ${notificationsSnapshot.docs.length} notificações do usuário`);
+                    
+                    for (const docSnapshot of notificationsSnapshot.docs) {
+                      try {
+                        await deleteDoc(doc(db, 'notifications', docSnapshot.id));
+                        console.log(`   ✅ Notificação deletada: ${docSnapshot.id}`);
+                      } catch (error) {
+                        console.error(`   ❌ Erro ao deletar notificação ${docSnapshot.id}:`, error);
+                      }
+                    }
+                    
+                    console.log('🎉 Limpeza dos dados do usuário concluída!');
+                    
+                    // Forçar recarregamento da página para limpar cache
+                    alert('✅ Seus dados foram limpos com sucesso!\n\nA página será recarregada para atualizar a interface.');
+                    window.location.reload();
+                    
+                  } catch (error) {
+                    console.error('❌ LIMPEZA: Erro durante a limpeza:', error);
+                    alert('❌ Erro durante a limpeza: ' + error.message);
+                  }
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+              >
+                <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                  <span className="text-red-600 dark:text-red-300 text-lg">🔥</span>
+                </div>
+                <span className="text-red-600 dark:text-red-400">Limpar Meus Dados (TESTE)</span>
+              </button>
+
               <button
                 onClick={() => {
                   onLogout();

@@ -1,26 +1,27 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // REGRAS BASEADAS EM EVENTOS - REGRA DE NEGÓCIO CENTRAL
+    
     // Regras para a coleção de imagens
     match /images/{imageId} {
       // Permitir leitura para todos os usuários autenticados
+      // (o filtro por evento é feito no frontend)
       allow read: if request.auth != null;
       
-      // Permitir criação para usuários autenticados (upload de imagens)
-      allow create: if request.auth != null;
+      // Permitir criação APENAS se o eventId for fornecido
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.eventId != null;
       
-      // Permitir atualização para qualquer usuário autenticado (temporário para debug)
+      // Permitir atualização para qualquer usuário autenticado
+      // (para curtidas e comentários)
       allow update: if request.auth != null;
       
       // Permitir exclusão APENAS pelo dono da imagem
       allow delete: if request.auth != null 
         && request.auth.uid == resource.data.userId;
-    }
-    
-    // Regras para usuários (se necessário)
-    match /users/{userId} {
-      allow read, write: if request.auth != null 
-        && request.auth.uid == userId;
     }
     
     // Regras para a coleção de eventos/festas
@@ -77,5 +78,13 @@ service cloud.firestore {
       allow delete: if request.auth != null 
         && request.auth.uid == resource.data.userId;
     }
+    
+    // REGRAS TEMPORÁRIAS PARA DESENVOLVIMENTO (comentadas)
+    /*
+    match /{document=**} {
+      // Permitir todas as operações para usuários autenticados durante desenvolvimento
+      allow read, write, delete: if request.auth != null;
+    }
+    */
   }
 }
