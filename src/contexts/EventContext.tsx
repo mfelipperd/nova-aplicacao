@@ -81,19 +81,6 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Recarregar todos os eventos do usuário
-  const reloadUserEvents = useCallback(async (userId: string) => {
-    try {
-      setLoading(true);
-      await loadUserEvents(userId);
-      await loadUserParticipations(userId);
-    } catch (error) {
-      console.error('Erro ao recarregar eventos:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [loadUserEvents, loadUserParticipations]);
-
   // Salvar último evento nos cookies
   const saveLastEventToCookie = useCallback((event: Party) => {
     try {
@@ -119,6 +106,50 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
       console.error('Erro ao salvar evento nos cookies:', error);
     }
   }, []);
+
+  // Recarregar todos os eventos do usuário
+  const reloadUserEvents = useCallback(async (userId: string) => {
+    try {
+      setLoading(true);
+      const [events, participations] = await Promise.all([
+        eventService.getUserEvents(userId),
+        eventParticipationService.getUserParticipations(userId)
+      ]);
+      
+      setUserEvents(events);
+      setUserParticipations(participations);
+      
+      // Auto-selecionar primeiro evento disponível se não há evento ativo
+      if (!currentEvent) {
+        // Combinar eventos criados e participados
+        const allEvents = [...events, ...participations.map(p => ({
+          id: p.eventId,
+          name: p.eventName,
+          inviteCode: p.eventInviteCode,
+          description: '',
+          qrCode: '',
+          createdAt: new Date(),
+          createdBy: '',
+          isActive: true
+        }))];
+        
+        // Remover duplicatas baseado no ID
+        const uniqueEvents = allEvents.filter((event, index, self) => 
+          index === self.findIndex(e => e.id === event.id)
+        );
+        
+        if (uniqueEvents.length > 0) {
+          const firstEvent = uniqueEvents[0];
+          setCurrentEvent(firstEvent);
+          saveLastEventToCookie(firstEvent);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao recarregar eventos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentEvent, saveLastEventToCookie]);
 
   // Carregar último evento dos cookies
   const loadLastEventFromCookie = useCallback((): Party | null => {
@@ -214,6 +245,9 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
       } else {
         // Se não há evento nos cookies, carregar eventos do usuário
         await reloadUserEvents(user.id);
+        
+        // Auto-selecionar o primeiro evento disponível se não há evento ativo
+        // Isso será feito após o carregamento dos eventos
       }
     };
     

@@ -204,21 +204,33 @@ const HomePage: React.FC = () => {
                 <span className="text-4xl">🎉</span>
               </div>
               <h3 className="text-xl font-semibold text-encibra-900 dark:text-white mb-2">
-                Nenhum evento ativo
+                Bem-vindo à Galeria de Fotos!
               </h3>
               <p className="text-encibra-600 dark:text-encibra-300 max-w-md mb-6">
-                Para ver e interagir com as fotos, você precisa estar em um evento. Crie um novo evento ou entre em um existente.
+                Para começar, você precisa criar um evento ou entrar em um existente. 
+                Crie seu primeiro evento para compartilhar fotos com seus convidados!
               </p>
-              <button
-                onClick={() => {
-                  // Abrir o EventSelector através do popover do usuário
-                  const event = new CustomEvent('openEventSelector');
-                  window.dispatchEvent(event);
-                }}
-                className="px-6 py-3 bg-encibra-primary-600 text-white rounded-lg hover:bg-encibra-primary-700 transition-colors"
-              >
-                Gerenciar Eventos
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    // Abrir o EventSelector através do popover do usuário
+                    const event = new CustomEvent('openEventSelector');
+                    window.dispatchEvent(event);
+                  }}
+                  className="px-6 py-3 bg-encibra-primary-600 text-white rounded-lg hover:bg-encibra-primary-700 transition-colors"
+                >
+                  Criar Meu Primeiro Evento
+                </button>
+                <button
+                  onClick={() => {
+                    // Mostrar instruções sobre como entrar em um evento
+                    alert('Para entrar em um evento existente:\n\n1. Peça o link do evento para o organizador\n2. Acesse o link diretamente\n3. Ou use o botão "Gerenciar Eventos" para ver eventos que você já participa');
+                  }}
+                  className="px-6 py-3 border border-encibra-gray-300 dark:border-encibra-gray-600 text-encibra-gray-700 dark:text-encibra-300 rounded-lg hover:bg-encibra-gray-50 dark:hover:bg-encibra-gray-700 transition-colors"
+                >
+                  Como Entrar em um Evento?
+                </button>
+              </div>
             </div>
           </div>
         ) : currentView === 'feed' ? (
