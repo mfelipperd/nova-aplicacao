@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Feed from '../components/Feed';
 import LikedImages from '../components/LikedImages';
 import NavigationFloatingButtons from '../components/NavigationFloatingButtons';
+import SimpleUserPopover from '../components/SimpleUserPopover';
 import UploadModal from '../components/UploadModal';
-import ThemeToggle from '../components/ThemeToggle';
 import { imageService } from '../services/imageService';
 import type { Image } from '../types';
 
@@ -128,6 +127,8 @@ const HomePage: React.FC = () => {
   // Calcular número de imagens curtidas
   const likedImagesCount = user ? images.filter(img => img.likedBy?.includes(user.id)).length : 0;
 
+
+
   return (
     <div className="min-h-screen bg-encibra-light dark:bg-encibra-gray-900 transition-colors duration-200">
       {/* Header */}
@@ -146,37 +147,15 @@ const HomePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <div className="hidden sm:flex items-center space-x-2">
-                <img
-                  src={user?.avatar || 'https://via.placeholder.com/32'}
-                  alt={user?.name}
-                  className="w-8 h-8 rounded-full border-2 border-encibra-gray-200 dark:border-encibra-gray-600"
-                />
-                <span className="text-sm font-medium text-encibra-gray-700 dark:text-encibra-gray-200">
-                  {user?.name}
-                </span>
-              </div>
-              
-              <div className="flex items-center space-x-1 sm:space-x-3">
-                <ThemeToggle />
-                <a
-                  href="/display"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-primary-600 dark:hover:text-encibra-gray-200 transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  title="Ver tela de projeção"
-                >
-                  <Eye className="w-5 h-5" />
-                </a>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-encibra-gray-500 dark:text-encibra-gray-400 hover:text-encibra-orange-600 dark:hover:text-encibra-gray-200 transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  title="Sair"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
+            <div className="flex items-center space-x-4">
+              {/* Popover do usuário */}
+              <SimpleUserPopover
+                onNotificationClick={(imageId) => {
+                  setCurrentView('feed');
+                }}
+                onLogout={handleLogout}
+                onUploadClick={() => setIsUploadModalOpen(true)}
+              />
             </div>
           </div>
         </div>

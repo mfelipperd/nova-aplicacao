@@ -27,6 +27,7 @@ import type {
 } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import type { Image, Comment } from '../types';
+import { notificationService } from './notificationService';
 
 export const imageService = {
   // Upload de imagem
@@ -197,6 +198,25 @@ export const imageService = {
           userName,
           userAvatar
         };
+
+        // Criar notificação para o dono da foto (se não for o próprio comentador)
+        try {
+          const imageData = docSnap.data();
+          if (imageData.userId !== userId) {
+            await notificationService.createCommentNotification(
+              imageId,
+              imageData.url,
+              content,
+              userId,
+              userName,
+              userAvatar,
+              imageData.userId
+            );
+          }
+        } catch (notificationError) {
+          console.error('Erro ao criar notificação:', notificationError);
+          // Não falhar a operação de comentário se a notificação falhar
+        }
         
         return result;
     } catch (error) {
