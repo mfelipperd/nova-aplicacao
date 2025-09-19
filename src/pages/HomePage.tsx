@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Feed from '../components/Feed';
-import FloatingUploadButton from '../components/FloatingUploadButton';
+import LikedImages from '../components/LikedImages';
+import NavigationFloatingButtons from '../components/NavigationFloatingButtons';
 import UploadModal from '../components/UploadModal';
 import ThemeToggle from '../components/ThemeToggle';
 import { imageService } from '../services/imageService';
@@ -12,6 +13,7 @@ const HomePage: React.FC = () => {
   const { user, logout } = useAuth();
   const [images, setImages] = useState<Image[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<'feed' | 'liked'>('feed');
 
   // Carregar imagens do Firebase
   useEffect(() => {
@@ -77,18 +79,32 @@ const HomePage: React.FC = () => {
     reloadImages();
   };
 
-  const handleLike = (_imageId: string) => {
-    // Recarregar imagens do Firebase para ter os dados mais atualizados
-    const reloadImages = async () => {
-      try {
-        const firebaseImages = await imageService.getAllImages();
-        setImages(firebaseImages);
-      } catch (error) {
-        console.error('Erro ao recarregar imagens:', error);
-      }
-    };
+  const handleLike = async (imageId: string) => {
+    if (!user) return;
     
-    reloadImages();
+    try {
+      // Encontrar a imagem atual
+      const currentImage = images.find(img => img.id === imageId);
+      if (!currentImage) return;
+      
+      // Verificar se o usuário já curtiu
+      const isLiked = currentImage.likedBy?.includes(user.id);
+      
+      if (isLiked) {
+        // Remover like
+        await imageService.unlikeImage(imageId, user.id);
+      } else {
+        // Adicionar like
+        await imageService.likeImage(imageId, user.id);
+      }
+      
+      // Recarregar imagens do Firebase para ter os dados mais atualizados
+      const firebaseImages = await imageService.getAllImages();
+      setImages(firebaseImages);
+    } catch (error) {
+      console.error('Erro ao dar like:', error);
+      alert('Erro ao dar like. Tente novamente.');
+    }
   };
 
   const handleDeleteImage = (_imageId: string) => {
@@ -108,6 +124,9 @@ const HomePage: React.FC = () => {
   const handleLogout = async () => {
     await logout();
   };
+
+  // Calcular número de imagens curtidas
+  const likedImagesCount = user ? images.filter(img => img.likedBy?.includes(user.id)).length : 0;
 
   return (
     <div className="min-h-screen bg-encibra-light dark:bg-encibra-gray-900 transition-colors duration-200">
@@ -163,19 +182,33 @@ const HomePage: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content - Feed */}
+      {/* Main Content */}
       <main className="py-4 sm:py-6 pb-safe">
-        <Feed
-          images={images}
-          onDownload={handleDownload}
-          onLike={handleLike}
-          onAddComment={handleAddComment}
-          onDeleteImage={handleDeleteImage}
-        />
+        {currentView === 'feed' ? (
+          <Feed
+            images={images}
+            onDownload={handleDownload}
+            onLike={handleLike}
+            onAddComment={handleAddComment}
+            onDeleteImage={handleDeleteImage}
+          />
+        ) : (
+          <LikedImages
+            images={images}
+            onDownload={handleDownload}
+            onBack={() => setCurrentView('feed')}
+          />
+        )}
       </main>
 
-      {/* Floating Upload Button */}
-      <FloatingUploadButton onClick={() => setIsUploadModalOpen(true)} />
+      {/* Navigation Dock */}
+      <NavigationFloatingButtons
+        currentView={currentView}
+        likedImagesCount={likedImagesCount}
+        onFeedClick={() => setCurrentView('feed')}
+        onLikedClick={() => setCurrentView('liked')}
+        onUploadClick={() => setIsUploadModalOpen(true)}
+      />
 
       {/* Upload Modal */}
       <UploadModal
